@@ -26,6 +26,39 @@ export function useVoice() {
 
   // ── Voice selection ──
   const pickBestVoice = useCallback(() => {
+  const voices = synthRef.current.getVoices();
+  if (!voices.length) return;
+
+  // 🇮🇳 Priority: Indian voices FIRST
+  const preferred = [
+    'Microsoft Heera',
+    'Microsoft Ravi',
+    'Google Indian English',
+    'en-IN',
+  ];
+
+  // Step 1: Exact / partial match
+  for (const name of preferred) {
+    const v = voices.find(v =>
+      v.name.toLowerCase().includes(name.toLowerCase()) ||
+      v.lang === 'en-IN'
+    );
+    if (v) {
+      bestVoiceRef.current = v;
+      console.log("Selected voice:", v.name);
+      return;
+    }
+  }
+
+  // Step 2: fallback to English
+  bestVoiceRef.current =
+    voices.find(v => v.lang === 'en-IN') ||
+    voices.find(v => v.lang.startsWith('en')) ||
+    voices[0];
+
+  console.log("Fallback voice:", bestVoiceRef.current.name);
+}, []);
+  const pickBestVoice1 = useCallback(() => {
     const voices = synthRef.current.getVoices();
     if (!voices.length) return;
 
