@@ -48,21 +48,9 @@ export function toUserData(user) {
   };
 }
 
-export async function getIdToken() {
-  return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      unsubscribe();
-      if (user) {
-        const token = await user.getIdToken();
-        resolve(token);
-      } else {
-        resolve(null);
-      }
-    });
-  });
-}
 
-export async function getIdToktten() {
+
+export async function getIdToken() {
   const user = auth.currentUser;
   if (!user) return null;
   return await user.getIdToken();
