@@ -28,7 +28,7 @@ export default function DashboardLayout() {
       {/* Logo */}
       <div style={{ padding:'1.35rem 1.25rem', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'0.6rem' }}>
-          <div style={{ width:34, height:34, borderRadius:'9px', background:'linear-gradient(135deg,#6366f1,#a78bfa)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px', boxShadow:'0 0 18px rgba(99,102,241,0.4)' }}>⚡</div>
+          <div className="home-logo">⚡</div>
           <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'18px', letterSpacing:'-0.3px' }}>
             Java<span style={{ color:'#818cf8' }}>Drill</span>
           </span>
