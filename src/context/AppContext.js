@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { signInWithGoogle, firebaseSignOut, subscribeToAuthState, toUserData } from '../utils/firebase';
+import { signInWithGoogle, firebaseSignOut, subscribeToAuthState, toUserData, completeRedirectSignIn } from '../utils/firebase';
 import { apiCall } from '../utils/api';
 
 const AppContext = createContext(null);
@@ -25,6 +25,10 @@ export function AppProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    completeRedirectSignIn().catch((error) => {
+      console.error('Redirect sign in failed:', error);
+    });
+
     const unsubscribe = subscribeToAuthState(async (firebaseUser) => {
       if (!firebaseUser) {
         setUser(null);
@@ -63,6 +67,7 @@ export function AppProvider({ children }) {
     try {
       setLoading(true);
       const userData = await signInWithGoogle();
+      if (!userData) return;
       const referralCode = getPendingReferralCode();
       const profile  = await apiCall('/api/auth/login', {
         method: 'POST',

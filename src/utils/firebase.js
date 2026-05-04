@@ -1,5 +1,15 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import {
+  browserLocalPersistence,
+  getAuth,
+  getRedirectResult,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+} from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCv8uvlX5HEtyWkhXsmqzuFTCBj9kofOSE",
@@ -14,10 +24,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
-export async function signInWithGoogle() {
-  const result = await signInWithPopup(auth, googleProvider);
-  const user = result.user;
+const popupFallbackCodes = new Set([
+  "auth/popup-blocked",
+  "auth/cancelled-popup-request",
+  "auth/operation-not-supported-in-this-environment",
+]);
+
+const toUserAuthData = async (user) => {
   const idToken = await user.getIdToken();
   return {
     uid: user.uid,
@@ -27,6 +42,25 @@ export async function signInWithGoogle() {
     avatar: user.displayName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
     idToken,
   };
+};
+
+export async function signInWithGoogle() {
+  await setPersistence(auth, browserLocalPersistence);
+
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return toUserAuthData(result.user);
+  } catch (error) {
+    if (!popupFallbackCodes.has(error?.code)) throw error;
+    await signInWithRedirect(auth, googleProvider);
+    return null;
+  }
+}
+
+export async function completeRedirectSignIn() {
+  const result = await getRedirectResult(auth);
+  if (!result?.user) return null;
+  return toUserAuthData(result.user);
 }
 
 export async function firebaseSignOut() {

@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { useApp } from '../context/AppContext';
 import { Spinner } from '../components/UI';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API = process.env.REACT_APP_API_URL || 'https://javadrill.onrender.com';
 
 const FEATURES = [
   { icon:'🎤', title:'Live Voice Interview', desc:'Sarah asks questions out loud, listens to your answer, and keeps the flow moving like a real interviewer.', stat:'Voice-first' },

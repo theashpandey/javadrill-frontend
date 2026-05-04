@@ -1,6 +1,6 @@
 import { getIdToken } from './firebase';
 
-export const API = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+export const API = process.env.REACT_APP_API_URL || 'https://javadrill.onrender.com';
 
 export async function apiCall(path, opts = {}) {
   const token = await getIdToken();
