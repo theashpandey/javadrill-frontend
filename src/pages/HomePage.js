@@ -110,8 +110,10 @@ export default function HomePage() {
       <div className="home-page">
         <header className="home-nav">
           <a href="/" className="home-brand" aria-label="JavaDrill home">
-            <span className="home-logo">⚡</span>
-            <span>Java<span>Drill</span></span>
+            <div><div className="home-logo">⚡</div>
+          
+        <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'17px' , marginLeft:'10px'}}>Java<span style={{ color:'#818cf8' }}>Drill</span></span>
+       </div>
           </a>
           <nav className="home-nav-links" aria-label="Primary navigation">
             <a href="#features">Features</a>

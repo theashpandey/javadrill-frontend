@@ -117,10 +117,10 @@ export default function DashboardLayout() {
 
       {/* Mobile header */}
       <div className="mobile-header" style={{ position:'fixed', top:0, left:0, right:0, zIndex:60, height:54, background:'rgba(8,8,14,0.98)', backdropFilter:'blur(24px)', borderBottom:'1px solid rgba(255,255,255,0.05)', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 1rem' }}>
-        <div style={{ width:34, height:34, borderRadius:'9px', background:'linear-gradient(135deg,#6366f1,#a78bfa)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px', boxShadow:'0 0 18px rgba(99,102,241,0.4)' }}>⚡</div>
+        <div><div className="home-logo">⚡</div>
           
-        <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'17px' }}>Java<span style={{ color:'#818cf8' }}>Drill</span></span>
-        <div style={{ display:'flex', alignItems:'center', gap:'0.65rem' }}>
+        <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'17px' , marginLeft:'10px'}}>Java<span style={{ color:'#818cf8' }}>Drill</span></span>
+       </div> <div style={{ display:'flex', alignItems:'center', gap:'0.65rem' }}>
           <span style={{ fontFamily:'var(--font-mono)', fontSize:'13px', color:creditColor, fontWeight:700 }}>{wallet}cr</span>
           <button onClick={() => setMobileOpen(!mobileOpen)} style={{ width:34, height:34, borderRadius:'8px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', color:'var(--text)', fontSize:'15px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
             {mobileOpen ? '✕' : '☰'}
