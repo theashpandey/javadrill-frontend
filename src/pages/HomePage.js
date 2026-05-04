@@ -129,11 +129,11 @@ export default function HomePage() {
         <main>
           <section className="home-hero">
             <div className="home-hero-copy">
-              <div className="home-eyebrow">AI Java interview practice for serious candidates</div>
+              <div className="home-eyebrow">AI-powered Java interview practice</div>
               <h1>JavaDrill</h1>
               <p className="home-hero-subtitle">
-                Speak with Sarah AI, answer real Java interview questions, and get precise feedback on your technical depth, clarity, and interview flow.
-              </p>
+               Practice real Java interview questions, speak your answers, and get instant feedback on clarity, depth, and confidence — just like a real interviewer.
+ </p>
               {error && <div className="home-error">{error}</div>}
               <div className="home-hero-actions">
                 <button className="home-primary-btn" onClick={handleSignIn} disabled={signingIn || loading}>
@@ -142,9 +142,9 @@ export default function HomePage() {
                 <a className="home-secondary-btn" href="#features">Explore features</a>
               </div>
               <div className="home-proof-row" aria-label="Platform highlights">
-                <span>No subscription</span>
-                <span>Resume-aware</span>
-                <span>Voice feedback</span>
+                <span>🎤 Voice-based interviews</span>
+                <span>📄 Resume-based questions</span>
+                <span>⚡ Instant AI feedback</span>
               </div>
             </div>
 
