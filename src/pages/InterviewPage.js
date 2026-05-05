@@ -369,7 +369,7 @@ export default function InterviewPage() {
 
  // ── Replace doShowReport in InterviewPage.js ──
 
-const doShowReport = useCallback(async ({ submitCurrent = false } = {}) => {
+const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
     if (completingRef.current) return;
     completingRef.current = true;
     clearInterval(timerRef.current); clearInterval(silentRef.current);
