@@ -12,16 +12,59 @@ import WalletPage    from './pages/WalletPage';
 import PrivacyPage   from './pages/PrivacyPage';
 import TermsPage     from './pages/TermsPage';
 import RefundPage    from './pages/RefundPage';
+import { Spinner } from './components/UI';
+
+function AppLoadingScreen() {
+  return (
+    <div style={{
+      minHeight:'100vh',
+      display:'flex',
+      alignItems:'center',
+      justifyContent:'center',
+      background:'var(--bg)',
+      padding:'1.5rem',
+    }}>
+      <div style={{
+        display:'flex',
+        flexDirection:'column',
+        alignItems:'center',
+        gap:'1rem',
+        textAlign:'center',
+      }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'0.65rem', marginBottom:'0.25rem' }}>
+          <div style={{
+            width:38,
+            height:38,
+            borderRadius:'10px',
+            background:'linear-gradient(135deg,#6366f1,#a78bfa)',
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center',
+            boxShadow:'0 0 24px rgba(99,102,241,0.35)',
+          }}>⚡</div>
+          <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'20px' }}>
+            Java<span style={{ color:'#818cf8' }}>Drill</span>
+          </span>
+        </div>
+        <Spinner size={36} />
+        <div>
+          <div style={{ color:'var(--text2)', fontSize:'14px', marginBottom:'0.35rem' }}>Preparing your workspace...</div>
+          <div style={{ color:'var(--text3)', fontSize:'12px' }}>Restoring your secure session</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }) {
   const { user, authReady } = useApp();
-  if (!authReady) return null;
+  if (!authReady) return <AppLoadingScreen />;
   return user ? children : <Navigate to="/" replace />;
 }
 
 function AppRoutes() {
   const { user, authReady } = useApp();
-  if (!authReady) return null;
+  if (!authReady) return <AppLoadingScreen />;
   return (
     <Routes>
       <Route path="/" element={user ? <Navigate to="/dashboard/interview" replace /> : <HomePage />} />
