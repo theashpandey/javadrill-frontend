@@ -7,7 +7,7 @@ export function Button({ children, variant = 'primary', size = 'md', disabled, o
     border: 'none', borderRadius: '10px', fontFamily: 'var(--font-body)',
     fontWeight: 500, cursor: disabled ? 'not-allowed' : 'pointer',
     transition: 'all 0.2s', opacity: disabled ? 0.4 : 1,
-    whiteSpace: 'nowrap',
+    whiteSpace: 'normal', textAlign: 'center',
   };
   const sizes = {
     sm: { padding: '0.45rem 1rem', fontSize: '13px' },

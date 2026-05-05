@@ -101,7 +101,7 @@ export default function HomePage() {
         <meta property="og:description" content="Practice real interviews by voice with resume-tailored questions and dynamic performance analytics." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://javadrill.app" />
-        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:card" content="summary" />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://javadrill.app" />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>

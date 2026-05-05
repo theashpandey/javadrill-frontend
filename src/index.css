@@ -76,6 +76,8 @@ input:focus, textarea:focus {
 input::placeholder, textarea::placeholder { color: var(--text3); }
 
 button { font-family: var(--font-body); cursor: pointer; border: none; outline: none; }
+button, a, input, select, textarea { min-width: 0; }
+p, h1, h2, h3, h4, h5, h6, span, div { overflow-wrap: anywhere; }
 
 /* Noise texture overlay */
 body::before {
@@ -623,7 +625,7 @@ body::before {
   .home-nav { padding: 0.75rem 1rem; }
   .home-nav-cta { min-height: 38px; padding: 0.55rem 0.8rem; font-size: 13px; }
   .home-hero {
-    width: min(100% - 1rem, 1180px);
+    width: min(calc(100% - 1rem), 1180px);
     padding: 2.5rem 0;
   }
   .home-hero h1 {
@@ -644,7 +646,7 @@ body::before {
     grid-template-columns: 1fr;
   }
   .home-section {
-    width: min(100% - 1rem, 1120px);
+    width: min(calc(100% - 1rem), 1120px);
   }
   .home-feature-card {
     min-height: auto;
