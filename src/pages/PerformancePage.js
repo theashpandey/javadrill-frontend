@@ -7,7 +7,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { apiCall } from '../utils/api';
 import { Card, ScoreRing, ProgressBar, Badge, EmptyState, Spinner } from '../components/UI';
-import { CAT_LABELS, CAT_COLORS, CATEGORIES } from '../utils/gemini';
+import { CAT_COLORS, formatCategoryLabel } from '../utils/gemini';
 
 const Tip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -60,7 +60,7 @@ export default function PerformancePage() {
       {error && <Card style={{ padding:'1rem', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', marginBottom:'1rem' }}>
         <div style={{ color:'#ef4444', fontSize:'13px' }}>⚠ {error}</div>
       </Card>}
-      <EmptyState icon="📊" title="No interviews yet" desc="Complete your first interview to see detailed analytics and AI-powered analysis from a senior Java interviewer's perspective." />
+      <EmptyState icon="📊" title="No interviews yet" desc="Complete your first interview to see detailed analytics and AI-powered analysis from a senior interviewer's perspective." />
     </div>
   );
 
@@ -80,14 +80,21 @@ export default function PerformancePage() {
 
   // Category averages across all sessions
   const catAvg = {};
-  CATEGORIES.forEach(cat => {
+  const dynamicCategories = Array.from(new Set(
+    last7.flatMap(h => [
+      ...(h.categories || []),
+      ...Object.keys(h.scores?.categories || {}),
+    ])
+  )).filter(Boolean);
+
+  dynamicCategories.forEach(cat => {
     const vals = last7.map(h => h.scores?.categories?.[cat]).filter(v => v > 0);
     catAvg[cat] = vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
   });
 
   // Radar data
-  const radarData = CATEGORIES.map(cat => ({
-    subject: CAT_LABELS[cat]?.replace(' ', '\n') || cat,
+  const radarData = dynamicCategories.map(cat => ({
+    subject: formatCategoryLabel(cat).replace(' ', '\n'),
     score: catAvg[cat] || 0,
     fullMark: 100,
   }));
@@ -172,10 +179,10 @@ export default function PerformancePage() {
         <Card style={{ padding:'1.5rem' }}>
           <h3 style={{ fontSize:'14px', fontWeight:600, marginBottom:'1.25rem', color:'var(--text2)' }}>Category Averages</h3>
           <div style={{ display:'flex', flexDirection:'column', gap:'0.65rem' }}>
-            {CATEGORIES.filter(c => catAvg[c] > 0).map(cat => (
+            {dynamicCategories.filter(c => catAvg[c] > 0).map(cat => (
               <div key={cat}>
                 <div style={{ display:'flex', justifyContent:'space-between', fontSize:'12px', marginBottom:'0.3rem' }}>
-                  <span style={{ color:'var(--text2)' }}>{CAT_LABELS[cat]}</span>
+                  <span style={{ color:'var(--text2)' }}>{formatCategoryLabel(cat)}</span>
                   <span style={{ fontFamily:'var(--font-mono)', color: catAvg[cat] >= 70 ? '#10b981' : catAvg[cat] >= 50 ? '#f59e0b' : '#ef4444' }}>{catAvg[cat]}%</span>
                 </div>
                 <ProgressBar value={catAvg[cat]} color={CAT_COLORS[cat] || '#6366f1'} height={5} />
@@ -191,14 +198,14 @@ export default function PerformancePage() {
           {bestCat && (
             <Card style={{ padding:'1.1rem', background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.2)' }}>
               <div style={{ fontSize:'11px', color:'#10b981', fontWeight:600, marginBottom:'0.4rem', textTransform:'uppercase', letterSpacing:'1px' }}>💪 Strongest Area</div>
-              <div style={{ fontSize:'15px', fontWeight:600, marginBottom:'0.25rem' }}>{CAT_LABELS[bestCat[0]]}</div>
+              <div style={{ fontSize:'15px', fontWeight:600, marginBottom:'0.25rem' }}>{formatCategoryLabel(bestCat[0])}</div>
               <div style={{ fontFamily:'var(--font-mono)', fontSize:'22px', color:'#10b981', fontWeight:700 }}>{bestCat[1]}%</div>
             </Card>
           )}
           {weakCat && (
             <Card style={{ padding:'1.1rem', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)' }}>
               <div style={{ fontSize:'11px', color:'#ef4444', fontWeight:600, marginBottom:'0.4rem', textTransform:'uppercase', letterSpacing:'1px' }}>🎯 Focus Area</div>
-              <div style={{ fontSize:'15px', fontWeight:600, marginBottom:'0.25rem' }}>{CAT_LABELS[weakCat[0]]}</div>
+              <div style={{ fontSize:'15px', fontWeight:600, marginBottom:'0.25rem' }}>{formatCategoryLabel(weakCat[0])}</div>
               <div style={{ fontFamily:'var(--font-mono)', fontSize:'22px', color:'#ef4444', fontWeight:700 }}>{weakCat[1]}%</div>
             </Card>
           )}
@@ -259,7 +266,7 @@ export default function PerformancePage() {
                 {analysis.categoryInsights.map((ci, i) => (
                   <div key={i} style={{ paddingBottom:'0.85rem', borderBottom: i < analysis.categoryInsights.length-1 ? '1px solid var(--border2)' : 'none' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'0.5rem' }}>
-                      <Badge color={CAT_COLORS[ci.category] || '#6366f1'}>{CAT_LABELS[ci.category] || ci.category}</Badge>
+                      <Badge color={CAT_COLORS[ci.category] || '#6366f1'}>{formatCategoryLabel(ci.category)}</Badge>
                       <span style={{ fontFamily:'var(--font-mono)', fontSize:'13px', color: ci.avgScore>=70?'#10b981':ci.avgScore>=50?'#f59e0b':'#ef4444', fontWeight:600 }}>{ci.avgScore}%</span>
                     </div>
                     {ci.insight && <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.7, marginBottom:'0.3rem' }}>{ci.insight}</div>}

@@ -9,14 +9,14 @@ const FEATURES = [
   { icon:'🎤', title:'Live Voice Interview', desc:'Sarah asks questions out loud, listens to your answer, and keeps the flow moving like a real interviewer.', stat:'Voice-first' },
   { icon:'📄', title:'Resume-Based Questions', desc:'Your resume shapes the questions, so practice matches your skills, projects, and real experience.', stat:'Personalized' },
   { icon:'🧠', title:'Human-Style Feedback', desc:'Get short, useful feedback after every answer with one clear strength and one improvement point.', stat:'Instant' },
-  { icon:'📈', title:'Performance Analytics', desc:'Track technical depth, communication, Java fundamentals, problem solving, and category trends.', stat:'Actionable' },
+  { icon:'📈', title:'Performance Analytics', desc:'Track communication, problem solving, role-specific depth, and dynamic category trends.', stat:'Actionable' },
   { icon:'🔁', title:'No Repeat Practice', desc:'Seen questions are tracked so every session feels fresh and closer to an actual interview loop.', stat:'Fresh sets' },
   { icon:'💳', title:'Pay Per Session', desc:'No subscription pressure. Start free, then pay only when you want more practice credits.', stat:'Simple' },
 ];
 
 const STEPS = [
   ['01', 'Sign in', 'Use Google login and get free starting credits.'],
-  ['02', 'Upload resume', 'Sarah reads your Java background and projects.'],
+  ['02', 'Upload resume', 'Sarah reads your role, experience, skills, and projects.'],
   ['03', 'Start mock', 'Pick a 30 or 60 minute voice session.'],
   ['04', 'Improve', 'Review feedback, scores, history, and trends.'],
 ];
@@ -30,7 +30,7 @@ const PLANS = [
 
 const FAQS = [
   ['How does JavaDrill work?', 'Choose a session, listen to Sarah AI, answer by voice, then get feedback and scores after the interview.'],
-  ['Does it use my resume?', 'Yes. Your resume helps generate questions that match your actual Java, Spring Boot, project, and experience profile.'],
+  ['Does it use my resume?', 'Yes. Your resume helps generate questions that match your actual role, tech stack, projects, and experience profile.'],
   ['Will it understand Indian English?', 'The speech recognition is configured for Indian English and works best in Chrome or Edge with a clear microphone.'],
   ['Do questions repeat?', 'The system tracks seen bank questions and avoids repeating them in later sessions.'],
   ['How do payments work?', 'Credits are added only after Razorpay payment verification. You pay per credit pack, not by subscription.'],
@@ -87,18 +87,18 @@ export default function HomePage() {
     name: 'JavaDrill',
     applicationCategory: 'EducationalApplication',
     operatingSystem: 'Web',
-    description: 'AI-powered Java mock interview platform with voice interviews, resume-tailored questions, and performance analytics.',
+    description: 'AI-powered role-based mock interview platform with voice interviews, resume-tailored questions, and performance analytics.',
     offers: { '@type': 'Offer', price: '5', priceCurrency: 'INR' },
   };
 
   return (
     <>
       <Helmet>
-        <title>JavaDrill | AI Java Mock Interviews with Voice Feedback</title>
-        <meta name="description" content="Practice Java interviews with Sarah AI. Voice-based mock interviews, resume-tailored questions, instant feedback, history, and performance analytics." />
-        <meta name="keywords" content="Java mock interview, Spring Boot interview practice, AI interview coach, Java interview questions, voice mock interview India" />
-        <meta property="og:title" content="JavaDrill | AI Java Mock Interviews" />
-        <meta property="og:description" content="Practice real Java interviews by voice with resume-tailored questions and instant AI feedback." />
+        <title>JavaDrill | AI Mock Interviews for Engineers, Data, HR and Managers</title>
+        <meta name="description" content="Practice role-based interviews with Sarah AI. Voice mock interviews for Java, Python, React, full stack, backend, data science, HR, architect, manager and more." />
+        <meta name="keywords" content="AI mock interview, Java interview practice, Python mock interview, React interview practice, data science interview, HR interview practice, voice mock interview India" />
+        <meta property="og:title" content="JavaDrill | AI Role-Based Mock Interviews" />
+        <meta property="og:description" content="Practice real interviews by voice with resume-tailored questions and dynamic performance analytics." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://javadrill.app" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -129,10 +129,10 @@ export default function HomePage() {
         <main>
           <section className="home-hero">
             <div className="home-hero-copy">
-              <div className="home-eyebrow">AI-powered Java interview practice</div>
+              <div className="home-eyebrow">AI-powered role-based interview practice</div>
               <h1>JavaDrill</h1>
               <p className="home-hero-subtitle">
-               Practice real Java interview questions, speak your answers, and get instant feedback on clarity, depth, and confidence — just like a real interviewer.
+               Practice real interview questions for engineering, data, HR, architecture, and manager roles, then get instant feedback on clarity, depth, and confidence — just like a real interviewer.
  </p>
               {error && <div className="home-error">{error}</div>}
               <div className="home-hero-actions">

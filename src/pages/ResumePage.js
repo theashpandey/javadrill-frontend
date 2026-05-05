@@ -1,15 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { apiCall } from '../utils/api';
 import { Card, Button, Spinner } from '../components/UI';
+import {
+  INTERVIEW_ROLES,
+  EXPERIENCE_LEVELS,
+  getRoleLabel,
+  getExperienceLabel,
+} from '../utils/gemini';
 
 export default function ResumePage() {
-  const { hasResume, setHasResume, user } = useApp();
+  const {
+    hasResume, setHasResume,
+    interviewRole, setInterviewRole,
+    experienceLevel, setExperienceLevel,
+  } = useApp();
   const [dragging, setDragging]   = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [editingPrefs, setEditingPrefs] = useState(!interviewRole || !experienceLevel);
+  const [draftRole, setDraftRole] = useState(interviewRole || 'java_developer');
+  const [draftExperience, setDraftExperience] = useState(experienceLevel || '3_5');
   const [error, setError]         = useState('');
   const [success, setSuccess]     = useState('');
+  const [prefsError, setPrefsError] = useState('');
+  const [prefsSuccess, setPrefsSuccess] = useState('');
   const [fileName, setFileName]   = useState('');
+
+  useEffect(() => {
+    if (interviewRole) setDraftRole(interviewRole);
+    if (experienceLevel) setDraftExperience(experienceLevel);
+    setEditingPrefs(!interviewRole || !experienceLevel);
+  }, [interviewRole, experienceLevel]);
 
   const handleFile = async (file) => {
     setError(''); setSuccess('');
@@ -42,6 +64,26 @@ export default function ResumePage() {
     handleFile(e.dataTransfer.files[0]);
   };
 
+  const savePrefs = async () => {
+    setPrefsError('');
+    setPrefsSuccess('');
+    setSavingPrefs(true);
+    try {
+      const data = await apiCall('/api/profile/interview-preferences', {
+        method:'POST',
+        body: JSON.stringify({ interviewRole: draftRole, experienceLevel: draftExperience }),
+      });
+      setInterviewRole(data.interviewRole || draftRole);
+      setExperienceLevel(data.experienceLevel || draftExperience);
+      setEditingPrefs(false);
+      setPrefsSuccess(data.message || 'Role and experience saved.');
+    } catch (e) {
+      setPrefsError(e.message || 'Could not save role and experience. Please try again.');
+    } finally {
+      setSavingPrefs(false);
+    }
+  };
+
   return (
     <div style={{ maxWidth:640, display:'flex', flexDirection:'column', gap:'1.25rem' }}>
       <div>
@@ -61,6 +103,57 @@ export default function ResumePage() {
               {fileName && <div style={{ fontSize:'12px', color:'var(--text3)' }}>{fileName}</div>}
               <div style={{ fontSize:'12px', color:'var(--text2)' }}>Sarah is ready to personalise your interview questions</div>
             </div>
+          </div>
+        </Card>
+      )}
+
+      {editingPrefs ? (
+        <Card style={{ padding:'1.1rem', display:'flex', flexDirection:'column', gap:'0.9rem', background:'rgba(99,102,241,0.05)', border:'1px solid rgba(99,102,241,0.18)' }}>
+          <div>
+            <div style={{ fontSize:'14px', fontWeight:700, color:'var(--text)', marginBottom:'0.25rem' }}>Interview Target</div>
+            <div style={{ fontSize:'12px', color:'var(--text2)' }}>Sarah uses this with your resume to build role-specific questions and scoring categories.</div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))', gap:'0.85rem' }}>
+            <label style={{ display:'flex', flexDirection:'column', gap:'0.45rem' }}>
+              <span style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:600 }}>Interview Role</span>
+              <select value={draftRole} onChange={e => setDraftRole(e.target.value)} style={{
+                width:'100%', minHeight:44, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)',
+                background:'rgba(20,20,42,0.8)', color:'var(--text)', padding:'0 0.8rem', fontSize:'13px',
+              }}>
+                {INTERVIEW_ROLES.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}
+              </select>
+            </label>
+            <label style={{ display:'flex', flexDirection:'column', gap:'0.45rem' }}>
+              <span style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:600 }}>Experience Level</span>
+              <select value={draftExperience} onChange={e => setDraftExperience(e.target.value)} style={{
+                width:'100%', minHeight:44, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)',
+                background:'rgba(20,20,42,0.8)', color:'var(--text)', padding:'0 0.8rem', fontSize:'13px',
+              }}>
+                {EXPERIENCE_LEVELS.map(level => <option key={level.value} value={level.value}>{level.label}</option>)}
+              </select>
+            </label>
+          </div>
+          {prefsError && <div style={{ color:'#ef4444', fontSize:'13px' }}>{prefsError}</div>}
+          <div style={{ display:'flex', gap:'0.65rem', flexWrap:'wrap' }}>
+            <Button onClick={savePrefs} disabled={savingPrefs} size="sm">
+              {savingPrefs ? 'Saving...' : 'Save Role & Experience'}
+            </Button>
+            {interviewRole && experienceLevel && (
+              <Button variant="secondary" size="sm" onClick={() => setEditingPrefs(false)}>Cancel</Button>
+            )}
+          </div>
+        </Card>
+      ) : (
+        <Card style={{ padding:'1.1rem', background:'rgba(16,185,129,0.07)', border:'1px solid rgba(16,185,129,0.2)' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', flexWrap:'wrap' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
+              <div style={{ fontSize:'28px' }}>✅</div>
+              <div>
+                <div style={{ fontSize:'14px', fontWeight:600, color:'#10b981', marginBottom:'0.2rem' }}>Interview target saved</div>
+                <div style={{ fontSize:'12px', color:'var(--text2)' }}>{getRoleLabel(interviewRole)} · {getExperienceLabel(experienceLevel)}</div>
+              </div>
+            </div>
+            <button onClick={() => setEditingPrefs(true)} style={{ background:'transparent', border:'none', color:'#10b981', cursor:'pointer', fontSize:'12px', textDecoration:'underline' }}>Replace</button>
           </div>
         </Card>
       )}
@@ -102,13 +195,14 @@ export default function ResumePage() {
 
       {error   && <div style={{ padding:'0.75rem 1rem', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:10, color:'#ef4444', fontSize:'13px' }}>{error}</div>}
       {success && <div style={{ padding:'0.75rem 1rem', background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:10, color:'#10b981', fontSize:'13px' }}>{success}</div>}
+      {prefsSuccess && <div style={{ padding:'0.75rem 1rem', background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:10, color:'#10b981', fontSize:'13px' }}>{prefsSuccess}</div>}
 
       <Card style={{ padding:'1.25rem' }}>
         <div style={{ fontSize:'13px', fontWeight:600, color:'var(--text2)', marginBottom:'0.85rem' }}>Tips for Best Results</div>
         <div style={{ display:'flex', flexDirection:'column', gap:'0.6rem' }}>
           {[
             '📝 Use a text-based PDF (not a scanned image)',
-            '🛠 List your Java skills, frameworks, and years of experience clearly',
+            '🛠 List your role-specific skills, frameworks, tools, and years of experience clearly',
             '💼 Include your project descriptions and tech stack',
             '📂 TXT format works best if PDF parsing gives issues',
             '✅ The more detail, the more targeted Sarah\'s questions will be',

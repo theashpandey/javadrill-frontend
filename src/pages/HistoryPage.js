@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { apiCall } from '../utils/api';
 import { Card, Badge, ScoreRing, EmptyState, Spinner, ProgressBar } from '../components/UI';
-import { CAT_LABELS, CAT_COLORS } from '../utils/gemini';
+import { CAT_COLORS, formatCategoryLabel } from '../utils/gemini';
 
 export default function HistoryPage() {
   const { history, fetchHistory } = useApp();
@@ -94,7 +94,7 @@ export default function HistoryPage() {
                   )}
                 </div>
                 <div style={{ display:'flex', gap:'0.35rem', flexWrap:'wrap', marginBottom:'0.5rem' }}>
-                  {cats.map(c => <Badge key={c} color={CAT_COLORS[c]||'#6366f1'}>{CAT_LABELS[c]||c}</Badge>)}
+                  {cats.map(c => <Badge key={c} color={CAT_COLORS[c]||'#6366f1'}>{formatCategoryLabel(c)}</Badge>)}
                 </div>
                 <div style={{ display:'flex', gap:'1.25rem', fontSize:'12px', color:'var(--text3)' }}>
                   <span>⏱ {item.durationMinutes} min</span>
@@ -166,7 +166,10 @@ function DetailView({ item, onBack }) {
           { label:'Technical',    val:scores.technical||0 },
           { label:'Communication',val:scores.communication||0 },
           { label:'Problem Solving',val:scores.problemSolving||0 },
-          { label:'Java Depth',   val:scores.javaDepth||0 },
+          ...Object.entries(scores.categories || {})
+            .filter(([cat, val]) => !['problem_solving', 'behavioral'].includes(cat) && Number(val) > 0)
+            .slice(0, 4)
+            .map(([cat, val]) => ({ label:formatCategoryLabel(cat), val })),
         ].map(s => (
           <Card key={s.label} style={{ padding:'1rem', textAlign:'center' }}>
             <ScoreRing score={s.val} size={58} />
@@ -199,7 +202,7 @@ function DetailView({ item, onBack }) {
                 {Object.entries(scores.categories).map(([cat, val]) => (
                   <div key={cat}>
                     <div style={{ display:'flex', justifyContent:'space-between', fontSize:'12px', marginBottom:'0.3rem' }}>
-                      <span style={{ color:'var(--text2)' }}>{CAT_LABELS[cat]||cat}</span>
+                      <span style={{ color:'var(--text2)' }}>{formatCategoryLabel(cat)}</span>
                       <span style={{ fontFamily:'var(--font-mono)', color: val>=70?'#10b981':val>=50?'#f59e0b':'#ef4444' }}>{val}%</span>
                     </div>
                     <ProgressBar value={val} color={CAT_COLORS[cat]||'#6366f1'} height={5} />
@@ -223,7 +226,7 @@ function DetailView({ item, onBack }) {
                   <div>
                     <div style={{ fontSize:'14px', fontWeight:500, color:'#93c5fd', lineHeight:1.6, marginBottom:'0.4rem' }}>{q.question}</div>
                     <div style={{ display:'flex', gap:'0.4rem' }}>
-                      <Badge color={CAT_COLORS[q.category]||'#6366f1'}>{CAT_LABELS[q.category]||q.category}</Badge>
+                      <Badge color={CAT_COLORS[q.category]||'#6366f1'}>{formatCategoryLabel(q.category)}</Badge>
                       {q.difficulty && <Badge color={q.difficulty==='hard'?'#ef4444':q.difficulty==='easy'?'#10b981':'#f59e0b'}>{q.difficulty}</Badge>}
                     </div>
                   </div>

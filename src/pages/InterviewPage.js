@@ -2,15 +2,28 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { apiCall } from '../utils/api';
 import { useVoice } from '../hooks/useVoice';
-import { CAT_LABELS, CAT_COLORS } from '../utils/gemini';
+import {
+  CAT_COLORS,
+  INTERVIEW_ROLES,
+  EXPERIENCE_LEVELS,
+  getRoleLabel,
+  getExperienceLabel,
+  formatCategoryLabel,
+} from '../utils/gemini';
 import { Button, Card, Spinner, Badge, Waveform, ProgressBar, ScoreRing } from '../components/UI';
 
 const PRICE      = { 30: 5, 60: 10 };
 const SCREENS    = { HOME: 'home', INTERVIEW: 'interview', REPORT: 'report' };
 const SILENT_SEC = 7;
+const MIN_CONTINUE_SECONDS = 90;
 
 export default function InterviewPage() {
-  const { wallet, setWallet, deductWallet, refreshWallet, hasResume, setHasResume } = useApp();
+  const {
+    wallet, setWallet, deductWallet, refreshWallet,
+    hasResume, setHasResume,
+    interviewRole, setInterviewRole,
+    experienceLevel, setExperienceLevel,
+  } = useApp();
   const voice = useVoice();
 
   const [screen, setScreen]       = useState(SCREENS.HOME);
@@ -21,6 +34,8 @@ export default function InterviewPage() {
   const [showResumePopup, setShowResumePopup] = useState(false);
   const [uploadingResume, setUploadingResume] = useState(false);
   const [resumeError, setResumeError] = useState('');
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [prefsError, setPrefsError] = useState('');
 
   // Interview runtime state
   const [sessionQs, setSessionQs]   = useState([]);
@@ -32,6 +47,7 @@ export default function InterviewPage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [micReady, setMicReady]     = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [loadingNextQuestion, setLoadingNextQuestion] = useState(false);
   const [finalScores, setFinalScores] = useState(null);
   const [interviewId, setInterviewId] = useState(null);
 
@@ -145,9 +161,28 @@ export default function InterviewPage() {
     }
   };
 
+  const saveInterviewPreferences = async (role, level) => {
+    setPrefsError('');
+    setSavingPrefs(true);
+    try {
+      const data = await apiCall('/api/profile/interview-preferences', {
+        method: 'POST',
+        body: JSON.stringify({ interviewRole: role, experienceLevel: level }),
+      });
+      setInterviewRole(data.interviewRole || role);
+      setExperienceLevel(data.experienceLevel || level);
+    } catch (e) {
+      setPrefsError(e.message || 'Could not save role and experience. Please try again.');
+      throw e;
+    } finally {
+      setSavingPrefs(false);
+    }
+  };
+
   // ── Start Interview ──
   const startInterview = async (dur) => {
     if (!hasResume) { setShowResumePopup(true); return; }
+    if (!interviewRole || !experienceLevel) { setPrefsError('Please save your interview role and experience level first.'); return; }
     if (wallet < PRICE[dur]) { setError(`Need ${PRICE[dur]} credits. You have ${wallet}.`); return; }
 
     setIsLoading(true); setError('');
@@ -157,7 +192,7 @@ export default function InterviewPage() {
       setLoadingMsg('Analysing your resume and tailoring questions...');
       const data = await apiCall('/api/interview/start', {
         method: 'POST',
-        body: JSON.stringify({ durationMinutes: dur }),
+        body: JSON.stringify({ durationMinutes: dur, interviewRole, experienceLevel }),
       });
 
       const qs = data.questions || [];
@@ -200,7 +235,7 @@ export default function InterviewPage() {
 
     // Natural conversational intros — vary them
     const intros = idx === 0
-      ? "Hi! I'm Sarah, your Java interviewer today. Let's get started with something to warm up. "
+      ? `Hi! I'm Sarah, your ${getRoleLabel(interviewRole)} interviewer today. Let's get started with something to warm up. `
       : (() => {
           const prev = answersRef.current[idx - 1] || '';
           const picks = prev.length > 180
@@ -228,7 +263,7 @@ export default function InterviewPage() {
       });
       startSilentTimer();
     });
-  }, [voice, startSilentTimer]);
+  }, [voice, startSilentTimer, interviewRole]);
 
   // ── Submit answer → get feedback ──
   const submitAnswer = useCallback(async () => {
@@ -269,7 +304,7 @@ export default function InterviewPage() {
       voice.speak(fb, () => {
         setTimeout(() => {
           if (currentQRef.current !== qIndex) return;
-          if (timeLeftRef.current > 30 && qIndex < sessionQsRef.current.length - 1) {
+          if (timeLeftRef.current > MIN_CONTINUE_SECONDS) {
             nextQuestion();
           }
         }, 1200);
@@ -285,17 +320,52 @@ export default function InterviewPage() {
     }
   }, [voice]);
 
-  const nextQuestion = useCallback(() => {
+  const fetchNextQuestion = useCallback(async () => {
+    if (!interviewIdRef.current) return null;
+    setLoadingNextQuestion(true);
+    try {
+      const res = await apiCall('/api/interview/next-question', {
+        method: 'POST',
+        body: JSON.stringify({ interviewId: interviewIdRef.current }),
+      });
+      const q = res.question;
+      if (!q?.question) throw new Error('Could not prepare the next question.');
+      const updated = [...sessionQsRef.current, q];
+      setSessionQs(updated); sessionQsRef.current = updated;
+      const answerList = [...answersRef.current, ''];
+      const feedbackList = [...feedbacksRef.current, ''];
+      setAnswers(answerList); answersRef.current = answerList;
+      setFeedbacks(feedbackList); feedbacksRef.current = feedbackList;
+      return updated.length - 1;
+    } finally {
+      setLoadingNextQuestion(false);
+    }
+  }, []);
+
+  const nextQuestion = useCallback(async () => {
     if (submittingRef.current) return;
     voice.stopSpeaking();
     const next = currentQRef.current + 1;
     if (next < sessionQsRef.current.length) {
       setCurrentQ(next); currentQRef.current = next;
       askQuestion(next, sessionQsRef.current);
+    } else if (timeLeftRef.current > MIN_CONTINUE_SECONDS) {
+      try {
+        const nextIndex = await fetchNextQuestion();
+        if (nextIndex != null) {
+          setCurrentQ(nextIndex); currentQRef.current = nextIndex;
+          askQuestion(nextIndex, sessionQsRef.current);
+        } else {
+          doShowReport();
+        }
+      } catch (e) {
+        setError(e.message || 'Could not prepare another question.');
+        doShowReport();
+      }
     } else {
       doShowReport();
     }
-  }, [askQuestion]);
+  }, [askQuestion, fetchNextQuestion, voice]);
 
  // ── Replace doShowReport in InterviewPage.js ──
 
@@ -380,6 +450,9 @@ const doShowReport = useCallback(async ({ submitCurrent = false } = {}) => {
     <HomeScreen
       hasResume={hasResume} wallet={wallet} PRICE={PRICE} error={error}
       onStart={startInterview}
+      interviewRole={interviewRole} setInterviewRole={setInterviewRole}
+      experienceLevel={experienceLevel} setExperienceLevel={setExperienceLevel}
+      onSavePreferences={saveInterviewPreferences} savingPrefs={savingPrefs} prefsError={prefsError}
       showResumePopup={showResumePopup} setShowResumePopup={setShowResumePopup}
       handleResumeFile={handleResumeFile} uploadingResume={uploadingResume} resumeError={resumeError}
     />
@@ -443,7 +516,7 @@ const doShowReport = useCallback(async ({ submitCurrent = false } = {}) => {
       {/* Category badge row */}
       {q && (
         <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', flexWrap:'wrap' }}>
-          <Badge color={CAT_COLORS[q.category] || '#6366f1'}>{CAT_LABELS[q.category] || q.category}</Badge>
+          <Badge color={CAT_COLORS[q.category] || '#6366f1'}>{formatCategoryLabel(q.category)}</Badge>
           <Badge color={q.difficulty==='hard'?'#ef4444':q.difficulty==='easy'?'#10b981':'#f59e0b'}>
             {q.difficulty || 'medium'}
           </Badge>
@@ -529,8 +602,12 @@ const doShowReport = useCallback(async ({ submitCurrent = false } = {}) => {
           </div>
           <div style={{ fontSize:'14.5px', lineHeight:1.85, color:'var(--text2)' }}>{feedbackText}</div>
           <div style={{ display:'flex', gap:'0.75rem', marginTop:'1rem', flexWrap:'wrap' }}>
-            <Button onClick={nextQuestion} size="sm" variant="primary">
-              {currentQ === sessionQs.length - 1 ? '🏁 View Final Report' : 'Next Question →'}
+            <Button onClick={nextQuestion} size="sm" variant="primary" disabled={loadingNextQuestion}>
+              {loadingNextQuestion
+                ? 'Preparing next question...'
+                : currentQ === sessionQs.length - 1 && timeLeft <= MIN_CONTINUE_SECONDS
+                ? '🏁 View Final Report'
+                : 'Next Question →'}
             </Button>
             <Button onClick={doShowReport} size="sm" variant="secondary">End Session</Button>
           </div>
@@ -547,9 +624,28 @@ const doShowReport = useCallback(async ({ submitCurrent = false } = {}) => {
 }
 
 // ── Home Screen ──
-function HomeScreen({ hasResume, wallet, PRICE, error, onStart, showResumePopup, setShowResumePopup, handleResumeFile, uploadingResume, resumeError }) {
+function HomeScreen({
+  hasResume, wallet, PRICE, error, onStart,
+  interviewRole, setInterviewRole, experienceLevel, setExperienceLevel,
+  onSavePreferences, savingPrefs, prefsError,
+  showResumePopup, setShowResumePopup, handleResumeFile, uploadingResume, resumeError,
+}) {
   const [selectedDur, setSelectedDur] = useState(null);
   const [dragging, setDragging]       = useState(false);
+  const [editingPrefs, setEditingPrefs] = useState(!interviewRole || !experienceLevel);
+  const [draftRole, setDraftRole] = useState(interviewRole || 'java_developer');
+  const [draftExperience, setDraftExperience] = useState(experienceLevel || '3_5');
+
+  useEffect(() => {
+    if (interviewRole) setDraftRole(interviewRole);
+    if (experienceLevel) setDraftExperience(experienceLevel);
+    setEditingPrefs(!interviewRole || !experienceLevel);
+  }, [interviewRole, experienceLevel]);
+
+  const savePrefs = async () => {
+    await onSavePreferences(draftRole, draftExperience);
+    setEditingPrefs(false);
+  };
 
   const onDrop = (e) => {
     e.preventDefault(); setDragging(false);
@@ -594,6 +690,45 @@ function HomeScreen({ hasResume, wallet, PRICE, error, onStart, showResumePopup,
         <p style={{ fontSize:'14px', color:'var(--text2)' }}>Time-based sessions — as many questions as the clock allows.</p>
       </div>
 
+      {editingPrefs ? (
+        <Card style={{ padding:'1rem', display:'flex', flexDirection:'column', gap:'0.85rem', background:'rgba(99,102,241,0.05)', border:'1px solid rgba(99,102,241,0.18)' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))', gap:'0.85rem' }}>
+            <label style={{ display:'flex', flexDirection:'column', gap:'0.45rem' }}>
+              <span style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:600 }}>Interview Role</span>
+              <select value={draftRole} onChange={e => setDraftRole(e.target.value)} style={{
+                width:'100%', minHeight:44, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)',
+                background:'rgba(20,20,42,0.8)', color:'var(--text)', padding:'0 0.8rem', fontSize:'13px',
+              }}>
+                {INTERVIEW_ROLES.map(role => <option key={role.value} value={role.value}>{role.label}</option>)}
+              </select>
+            </label>
+            <label style={{ display:'flex', flexDirection:'column', gap:'0.45rem' }}>
+              <span style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:600 }}>Experience Level</span>
+              <select value={draftExperience} onChange={e => setDraftExperience(e.target.value)} style={{
+                width:'100%', minHeight:44, borderRadius:10, border:'1px solid rgba(255,255,255,0.08)',
+                background:'rgba(20,20,42,0.8)', color:'var(--text)', padding:'0 0.8rem', fontSize:'13px',
+              }}>
+                {EXPERIENCE_LEVELS.map(level => <option key={level.value} value={level.value}>{level.label}</option>)}
+              </select>
+            </label>
+          </div>
+          {prefsError && <div style={{ color:'#ef4444', fontSize:'13px' }}>{prefsError}</div>}
+          <div style={{ display:'flex', gap:'0.65rem', flexWrap:'wrap' }}>
+            <Button onClick={savePrefs} disabled={savingPrefs} size="sm">
+              {savingPrefs ? 'Saving...' : 'Save Role & Experience'}
+            </Button>
+            {interviewRole && experienceLevel && (
+              <Button variant="secondary" size="sm" onClick={() => setEditingPrefs(false)}>Cancel</Button>
+            )}
+          </div>
+        </Card>
+      ) : (
+        <div style={{ padding:'0.85rem 1rem', background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:12, fontSize:'13px', color:'#10b981', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', flexWrap:'wrap' }}>
+          <span>✅ {getRoleLabel(interviewRole)} · {getExperienceLabel(experienceLevel)} saved</span>
+          <button onClick={() => setEditingPrefs(true)} style={{ background:'transparent', border:'none', color:'#10b981', cursor:'pointer', fontSize:'12px', textDecoration:'underline' }}>Replace</button>
+        </div>
+      )}
+
       {/* Resume status chip */}
       {hasResume ? (
         <div style={{ padding:'0.85rem 1rem', background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:12, fontSize:'13px', color:'#10b981', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -637,8 +772,8 @@ function HomeScreen({ hasResume, wallet, PRICE, error, onStart, showResumePopup,
 
       {error && <div style={{ padding:'0.75rem 1rem', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:10, color:'#ef4444', fontSize:'13px' }}>{error}</div>}
 
-      <Button onClick={() => selectedDur && onStart(selectedDur)} disabled={!selectedDur || !hasResume || wallet < (PRICE[selectedDur]||99)} size="lg" style={{ width:'100%' }}>
-        🎤 {!hasResume ? 'Upload Resume First' : !selectedDur ? 'Select Duration' : `Start Interview (${PRICE[selectedDur]} credits)`}
+      <Button onClick={() => selectedDur && onStart(selectedDur)} disabled={!selectedDur || !hasResume || !interviewRole || !experienceLevel || wallet < (PRICE[selectedDur]||99)} size="lg" style={{ width:'100%' }}>
+        🎤 {!hasResume ? 'Upload Resume First' : !interviewRole || !experienceLevel ? 'Save Role & Experience First' : !selectedDur ? 'Select Duration' : `Start ${getRoleLabel(interviewRole)} Interview (${PRICE[selectedDur]} credits)`}
       </Button>
 
       <div style={{ padding:'0.7rem', background:'rgba(20,20,42,0.4)', borderRadius:'10px', fontSize:'12px', color:'var(--text3)', textAlign:'center', lineHeight:1.6 }}>
@@ -662,6 +797,17 @@ function ReportScreen({ scores, sessionQs, answers, feedbacks, onRestart, durati
   );
 
   const overall  = scores.overall || 70;
+  const categoryCards = Object.entries(scores.categories || {})
+    .filter(([, val]) => Number(val) > 0)
+    .slice(0, 8)
+    .map(([category, val]) => ({ label: formatCategoryLabel(category), val, category }));
+  const scoreCards = [
+    { label:'Overall', val:overall },
+    { label:'Technical', val:scores.technical||0 },
+    { label:'Communication', val:scores.communication||0 },
+    { label:'Problem Solving', val:scores.problemSolving||0 },
+    ...categoryCards.filter(c => !['problem_solving', 'behavioral'].includes(c.category)).slice(0, 4),
+  ];
   const answered = answers.filter(a => a && a !== '(no answer)' && a !== '(skipped)').length;
   const verdict  = overall >= 80 ? { label:'Strong Hire 🎉', color:'#10b981' }
                  : overall >= 65 ? { label:'Probable Hire 👍', color:'#f59e0b' }
@@ -684,13 +830,7 @@ function ReportScreen({ scores, sessionQs, answers, feedbacks, onRestart, durati
 
       {/* Score breakdown */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:'0.75rem' }}>
-        {[
-          { label:'Overall',      val:overall },
-          { label:'Technical',    val:scores.technical||0 },
-          { label:'Communication',val:scores.communication||0 },
-          { label:'Problem Solving',val:scores.problemSolving||0 },
-          { label:'Java Depth',   val:scores.javaDepth||0 },
-        ].map(s => (
+        {scoreCards.map(s => (
           <Card key={s.label} style={{ padding:'1.1rem', textAlign:'center' }}>
             <ScoreRing score={s.val} size={68} />
             <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:'0.5rem', lineHeight:1.3 }}>{s.label}</div>
@@ -710,7 +850,7 @@ function ReportScreen({ scores, sessionQs, answers, feedbacks, onRestart, durati
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:'13.5px', fontWeight:500, color:'#93c5fd', lineHeight:1.5, marginBottom:'0.35rem' }}>{q.question}</div>
                 <div style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
-                  <Badge color={CAT_COLORS[q.category]||'#6366f1'}>{CAT_LABELS[q.category]||q.category}</Badge>
+                  <Badge color={CAT_COLORS[q.category]||'#6366f1'}>{formatCategoryLabel(q.category)}</Badge>
                   <Badge color={q.difficulty==='hard'?'#ef4444':q.difficulty==='easy'?'#10b981':'#f59e0b'}>{q.difficulty}</Badge>
                 </div>
               </div>

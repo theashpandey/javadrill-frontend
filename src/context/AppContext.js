@@ -8,6 +8,8 @@ export function AppProvider({ children }) {
   const [user, setUser]       = useState(null);
   const [wallet, setWallet]   = useState(0);
   const [hasResume, setHasResume] = useState(false);
+  const [interviewRole, setInterviewRole] = useState('');
+  const [experienceLevel, setExperienceLevel] = useState('');
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [authReady, setAuthReady] = useState(false);
@@ -22,6 +24,8 @@ export function AppProvider({ children }) {
     setUser(merged);
     setWallet(profile.walletCredits ?? 0);
     setHasResume(profile.hasResume ?? false);
+    setInterviewRole(profile.interviewRole || '');
+    setExperienceLevel(profile.experienceLevel || '');
   }, []);
 
   useEffect(() => {
@@ -34,6 +38,8 @@ export function AppProvider({ children }) {
         setUser(null);
         setWallet(0);
         setHasResume(false);
+        setInterviewRole('');
+        setExperienceLevel('');
         setHistory([]);
         setAuthReady(true);
         return;
@@ -54,6 +60,8 @@ export function AppProvider({ children }) {
         setUser(null);
         setWallet(0);
         setHasResume(false);
+        setInterviewRole('');
+        setExperienceLevel('');
         setHistory([]);
       } finally {
         setAuthReady(true);
@@ -88,6 +96,8 @@ export function AppProvider({ children }) {
     setUser(null);
     setWallet(0);
     setHasResume(false);
+    setInterviewRole('');
+    setExperienceLevel('');
     setHistory([]);
   };
 
@@ -103,6 +113,8 @@ export function AppProvider({ children }) {
       const data = await apiCall('/api/auth/me');
       setWallet(data.walletCredits ?? 0);
       setHasResume(data.hasResume ?? false);
+      setInterviewRole(data.interviewRole || '');
+      setExperienceLevel(data.experienceLevel || '');
       setUser(prev => prev ? { ...prev, ...data } : prev);
     } catch {}
   }, []);
@@ -127,6 +139,8 @@ export function AppProvider({ children }) {
       authReady,
       wallet, setWallet, deductWallet, addWallet, refreshWallet,
       hasResume, setHasResume,
+      interviewRole, setInterviewRole,
+      experienceLevel, setExperienceLevel,
       history, setHistory, fetchHistory,
       refreshProfile, apiCall,
     }}>
