@@ -33,17 +33,6 @@ export const EXPERIENCE_LEVELS = [
   { value: '35_plus', label: '35+ years' },
 ];
 
-export const CATEGORIES = [
-  'problem_solving',
-  'behavioral',
-  'java_core',
-  'oops',
-  'multithreading',
-  'spring',
-  'microservices',
-  'system_design',
-];
-
 export const CAT_LABELS = {
   java_core: 'Java Core',
   oops: 'OOP',

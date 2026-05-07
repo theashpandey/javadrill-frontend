@@ -17,6 +17,7 @@ const SCREENS    = { HOME: 'home', INTERVIEW: 'interview', REPORT: 'report' };
 const INITIAL_SILENT_SEC = 14;
 const ANSWER_PAUSE_SEC = 5;
 const MIN_CONTINUE_SECONDS = 90;
+const MAX_RESUME_BYTES = 5 * 1024 * 1024;
 
 export default function InterviewPage() {
   const {
@@ -167,6 +168,9 @@ export default function InterviewPage() {
     if (!allowed.includes(file.type) && !['pdf','txt'].includes(ext)) {
       setResumeError('Please upload a PDF or TXT file.'); return;
     }
+    if (file.size > MAX_RESUME_BYTES) {
+      setResumeError('File too large. Maximum size is 5MB.'); return;
+    }
     setUploadingResume(true);
     try {
       const fd = new FormData();
@@ -234,7 +238,7 @@ export default function InterviewPage() {
       setTimeout(() => askQuestion(0, qs), 300);
     } catch (err) {
       // Refund credits on failure
-      refreshWallet();
+      await refreshWallet();
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false); setLoadingMsg('');
