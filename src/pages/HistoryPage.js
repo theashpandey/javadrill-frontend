@@ -69,6 +69,7 @@ export default function HistoryPage() {
 
       {history.map((item, i) => {
         const overall = item.scores?.overall || 0;
+        const pending = item.status === 'ANALYSIS_PENDING';
         const cats    = item.categories?.slice(0,3) || [];
         const prev    = history[i+1]?.scores?.overall;
         const delta   = prev != null ? overall - prev : null;
@@ -82,11 +83,16 @@ export default function HistoryPage() {
             {i===0 && <div style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:'linear-gradient(180deg,#6366f1,#a78bfa)', borderRadius:'16px 0 0 16px' }} />}
 
             <div style={{ display:'flex', alignItems:'center', gap:'1.1rem', flexWrap:'wrap' }}>
-              <ScoreRing score={overall} size={60} />
+              {pending ? (
+                <div style={{ width:60, height:60, borderRadius:'50%', border:'3px solid rgba(245,158,11,0.45)', display:'flex', alignItems:'center', justifyContent:'center', color:'#f59e0b', fontSize:'11px', fontWeight:700, textAlign:'center' }}>Pending</div>
+              ) : (
+                <ScoreRing score={overall} size={60} />
+              )}
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:'0.65rem', marginBottom:'0.4rem', flexWrap:'wrap' }}>
                   <span style={{ fontWeight:600, fontSize:'14px' }}>{item.date}</span>
                   {i===0 && <span style={{ fontSize:'10px', padding:'2px 8px', borderRadius:'100px', background:'rgba(99,102,241,0.15)', color:'#818cf8', fontWeight:600 }}>Latest</span>}
+                  {pending && <span style={{ fontSize:'10px', padding:'2px 8px', borderRadius:'100px', background:'rgba(245,158,11,0.15)', color:'#f59e0b', fontWeight:600 }}>Report pending</span>}
                   {delta!==null && (
                     <span style={{ fontSize:'11px', color:delta>=0?'#10b981':'#ef4444', fontFamily:'var(--font-mono)' }}>
                       {delta>=0?'+':''}{delta}pts
@@ -104,7 +110,7 @@ export default function HistoryPage() {
               </div>
 
               {/* Mini score bars */}
-              <div style={{ display:'flex', flexDirection:'column', gap:'6px', minWidth:110, flexShrink:0 }}>
+              {!pending && <div style={{ display:'flex', flexDirection:'column', gap:'6px', minWidth:110, flexShrink:0 }}>
                 {[
                   { label:'Technical',    val:item.scores?.technical||0,    color:'#818cf8' },
                   { label:'Comm.',        val:item.scores?.communication||0, color:'#10b981' },
@@ -118,7 +124,7 @@ export default function HistoryPage() {
                     <ProgressBar value={s.val} color={s.color} height={3} />
                   </div>
                 ))}
-              </div>
+              </div>}
             </div>
           </Card>
         );
@@ -135,16 +141,17 @@ function DetailView({ item, onBack }) {
   const [analysisError, setAnalysisError] = useState('');
   const scores = item.scores || {};
   const qas    = item.questions || [];
+  const pending = item.status === 'ANALYSIS_PENDING';
 
   useEffect(() => {
-    if (tab !== 'analysis' || analysis || analysisLoading) return;
+    if (pending || tab !== 'analysis' || analysis || analysisLoading) return;
     setAnalysisLoading(true);
     setAnalysisError('');
     apiCall(`/api/interview/history/${item.id}/analysis`)
       .then(setAnalysis)
       .catch(e => setAnalysisError(e.message || 'Could not load interview analysis.'))
       .finally(() => setAnalysisLoading(false));
-  }, [tab, analysis, analysisLoading, item.id]);
+  }, [pending, tab, analysis, analysisLoading, item.id]);
 
   return (
     <div style={{ maxWidth:800, display:'flex', flexDirection:'column', gap:'1.25rem' }}>
@@ -161,7 +168,13 @@ function DetailView({ item, onBack }) {
 
       {/* Score overview */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:'0.65rem' }}>
-        {[
+        {pending ? (
+          <Card style={{ padding:'1.25rem', gridColumn:'1 / -1', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.22)' }}>
+            <div style={{ color:'#f59e0b', fontSize:'13px', lineHeight:1.7 }}>
+              {item.message || 'Your answers were saved, but the AI scoring service was unavailable. The final report is pending.'}
+            </div>
+          </Card>
+        ) : [
           { label:'Overall',      val:scores.overall||0 },
           { label:'Technical',    val:scores.technical||0 },
           { label:'Communication',val:scores.communication||0 },
@@ -252,6 +265,13 @@ function DetailView({ item, onBack }) {
       {/* Analysis tab */}
       {tab==='analysis' && (
         <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+          {pending && (
+            <Card style={{ padding:'1rem', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.22)' }}>
+              <div style={{ color:'#f59e0b', fontSize:'13px', lineHeight:1.7 }}>
+                The scoring report is still pending, so interview analysis will be available after the score is generated.
+              </div>
+            </Card>
+          )}
           {analysisLoading && (
             <Card style={{ padding:'1.5rem', display:'flex', alignItems:'center', gap:'0.85rem' }}>
               <Spinner size={22} />

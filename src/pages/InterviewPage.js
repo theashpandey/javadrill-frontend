@@ -49,6 +49,7 @@ export default function InterviewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [loadingNextQuestion, setLoadingNextQuestion] = useState(false);
   const [finalScores, setFinalScores] = useState(null);
+  const [completionMessage, setCompletionMessage] = useState('');
   const [interviewId, setInterviewId] = useState(null);
 
   // Timer
@@ -382,7 +383,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
     const iId = interviewIdRef.current;
     if (!iId) {
       // No interview ID — session never started properly
-      setFinalScores({ overall: 0, technical: 0, communication: 0, problemSolving: 0, javaDepth: 0 });
+      setFinalScores({ overall: 0, technical: 0, communication: 0, problemSolving: 0, roleDepth: 0 });
       completingRef.current = false;
       return;
     }
@@ -406,13 +407,21 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
         method: 'POST',
         body: JSON.stringify({ interviewId: iId }),
       });
-      setFinalScores(res.scores);
-      const s = res.scores?.overall || 70;
-      voice.speak(`Interview complete! You scored ${s} out of 100. Well done!`, null);
+      if (res.status === 'ANALYSIS_PENDING' || !res.scores) {
+        const msg = res.message || 'Your answers are saved. The AI scoring service is temporarily unavailable, so your report is pending. Please check Performance again later.';
+        setCompletionMessage(msg);
+        setFinalScores({ pending: true, categories: {} });
+        voice.speak('Your answers are saved. The scoring service is temporarily unavailable, so your report will be ready later.', null);
+      } else {
+        setCompletionMessage('');
+        setFinalScores(res.scores);
+        const s = res.scores?.overall || 0;
+        voice.speak(`Interview complete! You scored ${s} out of 100. Well done!`, null);
+      }
     } catch (e) {
       console.error('Complete failed:', e.message);
-      // Fallback scores — backend already auto-completed on last submit
-      setFinalScores({ overall: 70, technical: 70, communication: 70, problemSolving: 70, javaDepth: 70 });
+      setCompletionMessage('Your answers are saved locally for this session, but the report could not be finalized right now. Please check Performance or History again later.');
+      setFinalScores({ pending: true, categories: {} });
     } finally {
       completingRef.current = false;
     }
@@ -424,7 +433,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
     setScreen(SCREENS.HOME); setDuration(null);
     setSessionQs([]); setAnswers([]); setFeedbacks([]);
     setCurrentQ(0); setAiText(''); setFeedbackText('');
-    setShowFeedback(false); setFinalScores(null);
+    setShowFeedback(false); setFinalScores(null); setCompletionMessage('');
     setSilentCount(0); setAutoWarn(false);
     setInterviewId(null); interviewIdRef.current = null;
     answersRef.current = []; feedbacksRef.current = []; sessionQsRef.current = [];
@@ -432,7 +441,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
 
   // ── RENDER ──
   if (screen === SCREENS.REPORT) return (
-    <ReportScreen scores={finalScores} sessionQs={sessionQs} answers={answers} feedbacks={feedbacks} onRestart={restart} duration={duration} />
+    <ReportScreen scores={finalScores} completionMessage={completionMessage} sessionQs={sessionQs} answers={answers} feedbacks={feedbacks} onRestart={restart} duration={duration} />
   );
 
   if (isLoading) return (
@@ -784,7 +793,7 @@ function HomeScreen({
 }
 
 // ── Report Screen ──
-function ReportScreen({ scores, sessionQs, answers, feedbacks, onRestart, duration }) {
+function ReportScreen({ scores, completionMessage, sessionQs, answers, feedbacks, onRestart, duration }) {
   const [expanded, setExpanded] = useState(null);
 
   if (!scores) return (
@@ -796,7 +805,36 @@ function ReportScreen({ scores, sessionQs, answers, feedbacks, onRestart, durati
     </div>
   );
 
-  const overall  = scores.overall || 70;
+  if (scores.pending) {
+    const answered = answers.filter(a => a && a !== '(no answer)' && a !== '(skipped)').length;
+    return (
+      <div style={{ maxWidth:760, margin:'0 auto', display:'flex', flexDirection:'column', gap:'1.25rem' }}>
+        <Card style={{ padding:'2rem', textAlign:'center', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.25)' }}>
+          <div style={{ fontSize:'42px', marginBottom:'0.75rem' }}>⏳</div>
+          <h2 style={{ fontFamily:'var(--font-display)', fontSize:'24px', fontWeight:800, marginBottom:'0.6rem' }}>Report Pending</h2>
+          <p style={{ color:'var(--text2)', fontSize:'14px', lineHeight:1.8, maxWidth:560, margin:'0 auto' }}>
+            {completionMessage || 'Your answers are saved. The AI scoring service is temporarily unavailable, so your detailed report will be available later on the Performance page.'}
+          </p>
+          <p style={{ color:'var(--text3)', fontSize:'12px', marginTop:'0.85rem' }}>
+            Answered {answered} of {sessionQs.length} asked questions · {duration} min session
+          </p>
+        </Card>
+
+        <Card style={{ padding:'1.5rem' }}>
+          <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:'1.25rem' }}>Full Q&A Review</h3>
+          {sessionQs.map((q, i) => (
+            <div key={i} style={{ borderBottom: i < sessionQs.length-1 ? '1px solid var(--border2)' : 'none', padding:'0.9rem 0' }}>
+              <div style={{ fontSize:'13.5px', fontWeight:500, color:'#93c5fd', lineHeight:1.5, marginBottom:'0.4rem' }}>Q{i+1}. {q.question}</div>
+              <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.7 }}>{answers[i] || '(no answer recorded)'}</div>
+            </div>
+          ))}
+        </Card>
+        <Button onClick={onRestart} size="lg" style={{ width:'100%' }}>Start New Interview</Button>
+      </div>
+    );
+  }
+
+  const overall  = scores.overall || 0;
   const categoryCards = Object.entries(scores.categories || {})
     .filter(([, val]) => Number(val) > 0)
     .slice(0, 8)

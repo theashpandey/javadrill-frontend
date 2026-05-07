@@ -65,9 +65,26 @@ export default function PerformancePage() {
   );
 
   // ── Data prep ──
-  const last7   = history.slice(0, 7);
+  const pendingReports = history.filter(h => h.status === 'ANALYSIS_PENDING');
+  const completedHistory = history.filter(h => h.status !== 'ANALYSIS_PENDING' && h.scores?.overall > 0);
+  const last7   = completedHistory.slice(0, 7);
+
+  if (!last7.length && pendingReports.length > 0) return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'1rem', maxWidth:760 }}>
+      <PageHeader count={0} />
+      <Card style={{ padding:'1.25rem', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.22)' }}>
+        <div style={{ color:'#f59e0b', fontSize:'13px', lineHeight:1.8 }}>
+          {pendingReports.length} interview report{pendingReports.length>1?'s are':' is'} pending because the AI scoring service was unavailable. Your asked questions and answers were saved; refresh this page later to see the final report.
+        </div>
+      </Card>
+      {error && <Card style={{ padding:'1rem', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)' }}>
+        <div style={{ color:'#ef4444', fontSize:'13px' }}>⚠ {error}</div>
+      </Card>}
+    </div>
+  );
+
   const sorted  = [...last7].reverse();        // oldest → newest for trend chart
-  const latest  = history[0];
+  const latest  = completedHistory[0];
   const overall = latest?.scores?.overall || 0;
 
   // Trend chart
@@ -128,6 +145,14 @@ export default function PerformancePage() {
           </button>
         )}
       </div>
+
+      {pendingReports.length > 0 && (
+        <Card style={{ padding:'1rem', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.22)' }}>
+          <div style={{ color:'#f59e0b', fontSize:'13px', lineHeight:1.7 }}>
+            {pendingReports.length} interview report{pendingReports.length>1?'s are':' is'} pending because the AI scoring service was unavailable. Your asked questions and answers were saved; refresh this page later to see the final report.
+          </div>
+        </Card>
+      )}
 
       {/* Stats row */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:'0.75rem' }}>
@@ -242,6 +267,35 @@ export default function PerformancePage() {
               <div style={{ fontSize:'11px', color:'#818cf8', fontWeight:600, marginBottom:'0.5rem', textTransform:'uppercase', letterSpacing:'1px' }}>⚖ Interviewer Verdict</div>
               <div style={{ fontSize:'14px', lineHeight:1.8, color:'var(--text)', fontStyle:'italic' }}>"{analysis.interviewerVerdict}"</div>
             </Card>
+          )}
+
+          {(analysis.skillProfileSummary || analysis.nextInterviewGoal || analysis.practiceDrills?.length > 0) && (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:'0.75rem' }}>
+              {analysis.skillProfileSummary && (
+                <Card style={{ padding:'1.2rem', background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.18)' }}>
+                  <div style={{ fontSize:'12px', color:'#10b981', fontWeight:700, textTransform:'uppercase', letterSpacing:'1px', marginBottom:'0.55rem' }}>Skill Profile</div>
+                  <div style={{ fontSize:'14px', color:'var(--text2)', lineHeight:1.8 }}>{analysis.skillProfileSummary}</div>
+                </Card>
+              )}
+              {analysis.nextInterviewGoal && (
+                <Card style={{ padding:'1.2rem', background:'rgba(245,158,11,0.06)', border:'1px solid rgba(245,158,11,0.18)' }}>
+                  <div style={{ fontSize:'12px', color:'#f59e0b', fontWeight:700, textTransform:'uppercase', letterSpacing:'1px', marginBottom:'0.55rem' }}>Next Interview Goal</div>
+                  <div style={{ fontSize:'14px', color:'var(--text2)', lineHeight:1.8 }}>{analysis.nextInterviewGoal}</div>
+                </Card>
+              )}
+              {analysis.practiceDrills?.length > 0 && (
+                <Card style={{ padding:'1.2rem' }}>
+                  <div style={{ fontSize:'12px', color:'var(--text3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'1px', marginBottom:'0.75rem' }}>Practice Drills</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:'0.55rem' }}>
+                    {analysis.practiceDrills.slice(0, 3).map((drill, i) => (
+                      <div key={i} style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.65, padding:'0.65rem 0.75rem', background:'rgba(255,255,255,0.035)', borderRadius:8 }}>
+                        {i + 1}. {drill}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
           )}
 
           {/* Analysis cards */}
