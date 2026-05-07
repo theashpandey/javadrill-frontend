@@ -139,7 +139,7 @@ export function useVoice() {
       utt.rate   = 0.88;   // slightly slower = more natural
       utt.pitch  = 1.05;
       utt.volume = 1;
-      utt.lang   = 'en-US';
+      utt.lang   = bestVoiceRef.current?.lang || 'en-IN';
 
       utt.onend   = () => setTimeout(speakChunk, 140);
       utt.onerror = (e) => {

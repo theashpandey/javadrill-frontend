@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { apiCall } from '../utils/api';
 import { Card, Button, Spinner } from '../components/UI';
@@ -17,6 +17,7 @@ export default function WalletPage() {
   const [status, setStatus] = useState('');
   const [isError, setIsError] = useState(false);
   const [txHistory, setTxHistory] = useState([]);
+  const paymentCompletedRef = useRef(false);
 
   const loadTransactions = useCallback(async () => {
     try {
@@ -51,6 +52,8 @@ export default function WalletPage() {
         body: JSON.stringify({ creditPack: selected.credits }),
       });
 
+      let checkout = null;
+      paymentCompletedRef.current = false;
       const options = {
         key: order.keyId,
         amount: order.amount,
@@ -60,8 +63,19 @@ export default function WalletPage() {
         description: `${selected.credits} Interview Credits`,
         theme: { color:'#6366f1' },
         prefill: {},
-        modal: { ondismiss: () => { setPaying(false); setStatus('Payment cancelled.'); setIsError(true); } },
+        modal: {
+          ondismiss: () => {
+            if (paymentCompletedRef.current) return;
+            setPaying(false);
+            setStatus('Payment cancelled.');
+            setIsError(true);
+          },
+        },
         handler: async (response) => {
+          paymentCompletedRef.current = true;
+          setStatus('Payment captured. Verifying credits...');
+          setIsError(false);
+          checkout?.close?.();
           try {
             const verify = await apiCall('/api/wallet/verify', {
               method: 'POST',
@@ -93,8 +107,8 @@ export default function WalletPage() {
       };
 
       if (!window.Razorpay) await loadRazorpaySDK();
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      checkout = new window.Razorpay(options);
+      checkout.open();
     } catch (e) {
       setStatus(e.message || 'Payment initiation failed.');
       setIsError(true);

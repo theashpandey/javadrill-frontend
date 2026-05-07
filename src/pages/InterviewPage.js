@@ -14,7 +14,8 @@ import { Button, Card, Spinner, Badge, Waveform, ProgressBar, ScoreRing } from '
 
 const PRICE      = { 30: 5, 60: 10 };
 const SCREENS    = { HOME: 'home', INTERVIEW: 'interview', REPORT: 'report' };
-const SILENT_SEC = 7;
+const INITIAL_SILENT_SEC = 14;
+const ANSWER_PAUSE_SEC = 5;
 const MIN_CONTINUE_SECONDS = 90;
 
 export default function InterviewPage() {
@@ -55,6 +56,7 @@ export default function InterviewPage() {
   // Timer
   const [timeLeft, setTimeLeft]       = useState(0);
   const [silentCount, setSilentCount] = useState(0);
+  const [silentLimit, setSilentLimit] = useState(INITIAL_SILENT_SEC);
   const [autoWarn, setAutoWarn]       = useState(false);
   const timerRef      = useRef(null);
   const silentRef     = useRef(null);
@@ -71,6 +73,7 @@ export default function InterviewPage() {
   const timeLeftRef   = useRef(0);
   const submittingRef = useRef(false);
   const completingRef = useRef(false);
+  const silencePromptedRef = useRef(false);
 
   useEffect(() => { answersRef.current   = answers;   }, [answers]);
   useEffect(() => { feedbacksRef.current = feedbacks; }, [feedbacks]);
@@ -114,25 +117,42 @@ export default function InterviewPage() {
   // ── Silent auto-submit ──
   const startSilentTimer = useCallback(() => {
     clearInterval(silentRef.current);
+    const limit = transcriptRef.current.trim().length > 2 ? ANSWER_PAUSE_SEC : INITIAL_SILENT_SEC;
     silentCntRef.current = 0;
+    setSilentLimit(limit);
     setSilentCount(0); setAutoWarn(false);
 
     silentRef.current = setInterval(() => {
       silentCntRef.current += 1;
       setSilentCount(silentCntRef.current);
-      if (silentCntRef.current >= SILENT_SEC - 2) setAutoWarn(true);
-      if (silentCntRef.current >= SILENT_SEC) {
+      if (silentCntRef.current >= limit - 2) setAutoWarn(true);
+      if (silentCntRef.current >= limit) {
         clearInterval(silentRef.current);
         setAutoWarn(false); setSilentCount(0);
         if (transcriptRef.current.trim().length > 2) {
           submitAnswer();
         } else {
-          // Skip — no answer
-          const fb = "It seems you didn't get a chance to answer. That's fine — let's keep going!";
-          const upd = [...feedbacksRef.current]; upd[currentQRef.current] = fb;
-          setFeedbacks(upd); feedbacksRef.current = upd;
-          setFeedbackText(fb); setShowFeedback(true); setMicReady(false);
-          voice.speak("Alright, let's move to the next one.", () => {});
+          voice.stopListening();
+          setMicReady(false);
+          if (!silencePromptedRef.current) {
+            silencePromptedRef.current = true;
+            voice.speak("Take your time. You can start with whatever comes to mind, even a rough answer is fine.", () => {
+              setMicReady(true);
+              voice.startListening((display) => {
+                transcriptRef.current = display;
+                if (display !== lastTxRef.current) {
+                  lastTxRef.current = display;
+                  startSilentTimer();
+                }
+              });
+              startSilentTimer();
+            });
+          } else {
+            const fb = "No worries, let's keep the momentum. We can move to the next one.";
+            const upd = [...feedbacksRef.current]; upd[currentQRef.current] = fb;
+            setFeedbacks(upd); feedbacksRef.current = upd;
+            setFeedbackText(fb); setShowFeedback(true);
+          }
         }
       }
     }, 1000);
@@ -197,7 +217,7 @@ export default function InterviewPage() {
       });
 
       const qs = data.questions || [];
-      if (qs.length < 2) throw new Error('Could not generate questions. Please try again.');
+      if (qs.length < 1) throw new Error('Could not generate questions. Please try again.');
 
       if (typeof data.walletBalance === 'number') setWallet(data.walletBalance);
       setInterviewId(data.interviewId);
@@ -232,6 +252,7 @@ export default function InterviewPage() {
     setMicReady(false);
     transcriptRef.current = '';
     lastTxRef.current     = '';
+    silencePromptedRef.current = false;
     voice.resetTranscript();
 
     // Natural conversational intros — vary them
@@ -253,7 +274,7 @@ export default function InterviewPage() {
     voice.speak(fullText, () => {
       setMicReady(true);
       voice.startListening((display, final) => {
-        transcriptRef.current = final || display;
+        transcriptRef.current = display || final || '';
         if (display !== lastTxRef.current) {
           lastTxRef.current = display;
           clearInterval(silentRef.current);
@@ -570,7 +591,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
         {/* Silent countdown warning */}
         {autoWarn && voice.isListening && (
           <div style={{ marginTop:'0.75rem', padding:'0.45rem 0.75rem', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.25)', borderRadius:'8px', fontSize:'12px', color:'#f59e0b', display:'flex', alignItems:'center', gap:'0.5rem' }}>
-            ⏱ Auto-submitting in {SILENT_SEC - silentCount}s...
+            ⏱ Auto-submitting in {silentLimit - silentCount}s...
             {voice.transcript && <span style={{ color:'var(--text3)' }}>or click Submit now</span>}
           </div>
         )}
@@ -586,7 +607,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
           )}
           {!voice.isListening && !submitting && (
             <Button variant="secondary" size="md" onClick={() => {
-              voice.startListening((d,f) => { transcriptRef.current = f||d; });
+              voice.startListening((display, final) => { transcriptRef.current = display || final || ''; });
               startSilentTimer();
             }}>
               🎤 Retry Mic

@@ -14,7 +14,14 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [authReady, setAuthReady] = useState(false);
 
+  const captureReferralCodeFromUrl = () => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) localStorage.setItem('javadrill_referral_code', ref.trim().toUpperCase());
+  };
+
   const getPendingReferralCode = () => {
+    captureReferralCodeFromUrl();
     const code = localStorage.getItem('javadrill_referral_code');
     return code ? code.trim().toUpperCase() : '';
   };
@@ -29,6 +36,8 @@ export function AppProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    captureReferralCodeFromUrl();
+
     completeRedirectSignIn().catch((error) => {
       console.error('Redirect sign in failed:', error);
     });
