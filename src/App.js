@@ -4,6 +4,10 @@ import { AppProvider, useApp } from './context/AppContext';
 import { HelmetProvider } from 'react-helmet-async';
 import HomePage      from './pages/HomePage';
 import DashboardLayout from './pages/DashboardLayout';
+import AdminDashboardLayout from './pages/AdminDashboardLayout';
+import AdminUsersPage from './pages/AdminUsersPage';
+import AdminFeedbackPage from './pages/AdminFeedbackPage';
+import AdminGeminiMonitoringPage from './pages/AdminGeminiMonitoringPage';
 import InterviewPage from './pages/InterviewPage';
 import PerformancePage from './pages/PerformancePage';
 import HistoryPage   from './pages/HistoryPage';
@@ -59,15 +63,25 @@ function AppLoadingScreen() {
 function ProtectedRoute({ children }) {
   const { user, authReady } = useApp();
   if (!authReady) return <AppLoadingScreen />;
-  return user ? children : <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/" replace />;
+  if (user.isAdmin) return <Navigate to="/admin/users" replace />;
+  return children;
+}
+
+function AdminRoute({ children }) {
+  const { user, authReady } = useApp();
+  if (!authReady) return <AppLoadingScreen />;
+  if (!user) return <Navigate to="/" replace />;
+  return user.isAdmin ? children : <Navigate to="/dashboard/interview" replace />;
 }
 
 function AppRoutes() {
   const { user, authReady } = useApp();
   if (!authReady) return <AppLoadingScreen />;
+  const homeRedirect = user?.isAdmin ? '/admin/users' : '/dashboard/interview';
   return (
     <Routes>
-      <Route path="/" element={user ? <Navigate to="/dashboard/interview" replace /> : <HomePage />} />
+      <Route path="/" element={user ? <Navigate to={homeRedirect} replace /> : <HomePage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms"   element={<TermsPage />} />
       <Route path="/refund"  element={<RefundPage />} />
@@ -78,6 +92,12 @@ function AppRoutes() {
         <Route path="history"     element={<HistoryPage />} />
         <Route path="resume"      element={<ResumePage />} />
         <Route path="wallet"      element={<WalletPage />} />
+      </Route>
+      <Route path="/admin" element={<AdminRoute><AdminDashboardLayout /></AdminRoute>}>
+        <Route index element={<Navigate to="users" replace />} />
+        <Route path="users" element={<AdminUsersPage />} />
+        <Route path="feedback" element={<AdminFeedbackPage />} />
+        <Route path="gemini-monitoring" element={<AdminGeminiMonitoringPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
