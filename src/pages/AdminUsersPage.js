@@ -59,10 +59,6 @@ export default function AdminUsersPage() {
             <Metric title="Total Interviews" value={stats.totalInterviews} color="#f59e0b" />
             <Metric title="Interviews Today" value={stats.interviewsToday} color="#f97316" />
             <Metric title="Range Interviews" value={stats.interviewsInRange} color="#ec4899" />
-            <Metric title="Avg Score" value={`${stats.avgScore || 0}%`} color="#a78bfa" />
-            <Metric title="Best Score" value={`${stats.bestScore || 0}%`} color="#10b981" />
-            <Metric title="With Resume" value={stats.usersWithResume} color="#7dd3fc" />
-            <Metric title="Credits In Wallets" value={stats.totalCreditsInWallets} color="#f59e0b" />
             <Metric title="New Today" value={stats.newUsersToday} color="#818cf8" />
           </div>
 

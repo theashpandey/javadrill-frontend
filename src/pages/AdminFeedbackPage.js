@@ -2,8 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { apiCall } from '../utils/api';
 import { Badge, Card, EmptyState, Spinner } from '../components/UI';
 
+const today = new Date().toISOString().slice(0, 10);
+const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
 export default function AdminFeedbackPage() {
   const [tab, setTab] = useState('feedback');
+  const [from, setFrom] = useState(oneYearAgo);
+  const [to, setTo] = useState(today);
   const [feedback, setFeedback] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -13,9 +18,10 @@ export default function AdminFeedbackPage() {
     setLoading(true);
     setError('');
     try {
+      const qs = new URLSearchParams({ from, to }).toString();
       const [feedbackData, contactData] = await Promise.all([
-        apiCall('/api/admin/feedback'),
-        apiCall('/api/admin/contacts'),
+        apiCall(`/api/admin/feedback?${qs}`),
+        apiCall(`/api/admin/contacts?${qs}`),
       ]);
       setFeedback(feedbackData || []);
       setContacts(contactData || []);
@@ -37,7 +43,11 @@ export default function AdminFeedbackPage() {
           <h2 style={{ fontFamily:'var(--font-display)', fontSize:'24px', fontWeight:800, marginBottom:'0.4rem' }}>Feedback</h2>
           <p style={{ color:'var(--text2)', fontSize:'14px' }}>Read user feedback and public contact messages from one admin view.</p>
         </div>
-        <button onClick={load} disabled={loading} style={buttonStyle}>{loading ? 'Refreshing...' : 'Refresh'}</button>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(110px, auto))', gap:'0.5rem', alignItems:'end' }} className="feedback-filter-row">
+          <label style={labelStyle}>From<input type="date" value={from} onChange={e => setFrom(e.target.value)} /></label>
+          <label style={labelStyle}>To<input type="date" value={to} onChange={e => setTo(e.target.value)} /></label>
+          <button onClick={load} disabled={loading} style={buttonStyle}>{loading ? 'Loading...' : 'Apply'}</button>
+        </div>
       </div>
 
       <div style={{ display:'flex', gap:'0.5rem', borderBottom:'1px solid var(--border2)' }}>
@@ -56,6 +66,11 @@ export default function AdminFeedbackPage() {
           </div>
         ) : <EmptyState icon="💬" title="No messages yet" desc="Feedback and contact messages will appear here." />
       )}
+      <style>{`
+        @media (max-width: 768px) {
+          .feedback-filter-row { grid-template-columns: 1fr !important; width: 100%; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -106,4 +121,5 @@ function typeColor(type) {
 }
 
 const buttonStyle = { minHeight:40, borderRadius:10, background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.24)', color:'#818cf8', padding:'0 1rem', fontWeight:700 };
+const labelStyle = { display:'grid', gap:'0.35rem', color:'var(--text3)', fontSize:'11px', fontWeight:700 };
 const errorStyle = { padding:'1rem', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'#ef4444', fontSize:'13px' };

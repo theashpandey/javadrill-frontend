@@ -67,7 +67,7 @@ export function AppProvider({ children }) {
         const referralCode = getPendingReferralCode();
         const profile = await apiCall('/api/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ referralCode }),
+          body: JSON.stringify({ referralCode, name: userData.name }),
         });
         if (profile?.isNewUser) localStorage.removeItem('javadrill_referral_code');
         applyProfile(userData, profile);
@@ -96,7 +96,7 @@ export function AppProvider({ children }) {
       const referralCode = getPendingReferralCode();
       const profile  = await apiCall('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ referralCode }),
+        body: JSON.stringify({ referralCode, name: userData.name }),
       });
       if (profile?.isNewUser) localStorage.removeItem('javadrill_referral_code');
       applyProfile(userData, profile);
@@ -117,7 +117,7 @@ export function AppProvider({ children }) {
       const referralCode = getPendingReferralCode();
       const profile = await apiCall('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ referralCode }),
+        body: JSON.stringify({ referralCode, name: userData.name }),
       });
       if (profile?.isNewUser) localStorage.removeItem('javadrill_referral_code');
       applyProfile(userData, profile);

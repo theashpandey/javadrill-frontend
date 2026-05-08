@@ -43,6 +43,8 @@ export default function AdminGeminiMonitoringPage() {
     requests: item.totals?.requestCount || 0,
     tokens: item.totals?.totalTokens || 0,
   })), [data]);
+  const topUsers = useMemo(() => topBuckets(data?.byUser || []), [data]);
+  const topInterviews = useMemo(() => topBuckets(data?.byInterview || []), [data]);
 
   const successRate = totals.requestCount ? Math.round((totals.successCount / totals.requestCount) * 100) : 0;
 
@@ -105,8 +107,8 @@ export default function AdminGeminiMonitoringPage() {
           </div>
 
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(270px,1fr))', gap:'0.75rem' }}>
-            <BucketList title="Top Users By Requests" items={data?.byUser || []} />
-            <BucketList title="Top Interviews By Requests" items={data?.byInterview || []} />
+            <BucketList title="Top 10 Users By Requests" items={topUsers} />
+            <BucketList title="Top 10 Interviews By Requests" items={topInterviews} />
           </div>
         </>
       )}
@@ -130,7 +132,33 @@ function ChartCard({ title, children }) {
 }
 
 function BucketList({ title, items }) {
-  return <Card style={{ padding:'1.25rem' }}><h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:'1rem' }}>{title}</h3><div style={{ display:'grid', gap:'0.65rem' }}>{items.slice(0, 10).map(item => <div key={item.key} style={{ display:'flex', justifyContent:'space-between', gap:'1rem', color:'var(--text2)', fontSize:'13px' }}><span>{item.key}</span><Badge color="#818cf8">{item.totals?.requestCount || 0}</Badge></div>)}</div></Card>;
+  const max = Math.max(...items.map(item => item.totals?.requestCount || 0), 1);
+  return (
+    <Card style={{ padding:'1.25rem' }}>
+      <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:'1rem' }}>{title}</h3>
+      <div style={{ display:'grid', gap:'0.75rem' }}>
+        {items.length ? items.map((item, index) => {
+          const count = item.totals?.requestCount || 0;
+          const failed = item.totals?.failedCount || 0;
+          return (
+            <div key={item.key} style={{ display:'grid', gridTemplateColumns:'28px minmax(0,1fr) auto', alignItems:'center', gap:'0.75rem' }}>
+              <span style={{ width:28, height:28, borderRadius:8, background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.22)', color:'#818cf8', display:'inline-flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-mono)', fontSize:'12px' }}>{index + 1}</span>
+              <div style={{ minWidth:0 }}>
+                <div style={{ color:'var(--text2)', fontSize:'13px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.key}</div>
+                <div style={{ height:4, borderRadius:4, background:'rgba(255,255,255,0.06)', marginTop:'0.4rem', overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${Math.max(5, (count / max) * 100)}%`, background:'linear-gradient(90deg,#6366f1,#818cf8)', borderRadius:4 }} />
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:'0.35rem', alignItems:'center' }}>
+                <Badge color="#818cf8">{count}</Badge>
+                {failed > 0 && <Badge color="#ef4444">{failed} fail</Badge>}
+              </div>
+            </div>
+          );
+        }) : <div style={{ color:'var(--text3)', fontSize:'13px' }}>No requests in this date range.</div>}
+      </div>
+    </Card>
+  );
 }
 
 function Tip({ active, payload, label }) {
@@ -144,6 +172,13 @@ function Loading() {
 
 function label(value) {
   return String(value || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+}
+
+function topBuckets(items) {
+  return items
+    .slice()
+    .sort((a, b) => (b.totals?.requestCount || 0) - (a.totals?.requestCount || 0))
+    .slice(0, 10);
 }
 
 const labelStyle = { display:'grid', gap:'0.35rem', color:'var(--text3)', fontSize:'11px', fontWeight:700 };
