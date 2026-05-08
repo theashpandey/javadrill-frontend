@@ -108,11 +108,11 @@ export function AppProvider({ children }) {
     }
   };
 
-  const authenticateWithEmail = async ({ mode, fullName, email, password }) => {
+  const authenticateWithEmail = async ({ mode, name, email, password }) => {
     try {
       setLoading(true);
       const userData = mode === 'signup'
-        ? await signUpWithEmail({ fullName, email, password })
+        ? await signUpWithEmail({ name, email, password })
         : await signInWithEmail({ email, password });
       const referralCode = getPendingReferralCode();
       const profile = await apiCall('/api/auth/login', {

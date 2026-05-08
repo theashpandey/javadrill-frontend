@@ -61,9 +61,9 @@ export async function signInWithGoogle() {
   }
 }
 
-export async function signUpWithEmail({ fullName, email, password }) {
+export async function signUpWithEmail({ name, email, password }) {
   await setPersistence(auth, browserLocalPersistence);
-  const cleanName = fullName.trim();
+  const cleanName = name.trim();
   const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
   await updateProfile(result.user, {
     displayName: cleanName,

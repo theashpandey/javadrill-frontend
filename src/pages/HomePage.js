@@ -36,13 +36,15 @@ const FAQS = [
   ['How do payments work?', 'Credits are added only after Razorpay payment verification. You pay per credit pack, not by subscription.'],
 ];
 
+const EMPTY_AUTH_FORM = { name:'', email:'', password:'' };
+
 export default function HomePage() {
   const { signIn, authenticateWithEmail, loading } = useApp();
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('signup');
-  const [authForm, setAuthForm] = useState({ fullName:'', email:'', password:'' });
+  const [authForm, setAuthForm] = useState(EMPTY_AUTH_FORM);
   const [contactForm, setContactForm] = useState({ name:'', email:'', message:'' });
   const [contactSending, setContactSending] = useState(false);
   const [contactDone, setContactDone] = useState(false);
@@ -57,20 +59,34 @@ export default function HomePage() {
   const openAuth = (mode = 'signup') => {
     setAuthMode(mode);
     setError('');
+    setAuthForm(EMPTY_AUTH_FORM);
     setAuthOpen(true);
+  };
+
+  const closeAuth = () => {
+    setAuthOpen(false);
+    setError('');
+    setAuthForm(EMPTY_AUTH_FORM);
   };
 
   const handleGoogleSignIn = async () => {
     setSigningIn(true);
     setError('');
     try { await signIn(); }
-    catch { setError('Sign-in failed. Please try again.'); }
+    catch (err) {
+      const code = err?.code || '';
+      if (code.includes('account-exists-with-different-credential')) {
+        setError('This email already has a password login. Please sign in with email and password first.');
+      } else {
+        setError('Sign-in failed. Please try again.');
+      }
+    }
     finally { setSigningIn(false); }
   };
 
   const handleEmailAuth = async (event) => {
     event.preventDefault();
-    if (authMode === 'signup' && !authForm.fullName.trim()) {
+    if (authMode === 'signup' && !authForm.name.trim()) {
       setError('Please enter your full name.');
       return;
     }
@@ -313,9 +329,9 @@ export default function HomePage() {
         </footer>
         {authOpen && (
           <div className="auth-modal-shell" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-            <button className="auth-modal-backdrop" aria-label="Close authentication" onClick={() => setAuthOpen(false)} />
+            <button className="auth-modal-backdrop" aria-label="Close authentication" onClick={closeAuth} />
             <div className="auth-modal">
-              <button className="auth-close" aria-label="Close" onClick={() => setAuthOpen(false)}>x</button>
+              <button className="auth-close" aria-label="Close" onClick={closeAuth}>x</button>
               <div className="auth-modal-brand">
                 <span className="home-logo">⚡</span>
                 <div>
@@ -325,8 +341,8 @@ export default function HomePage() {
               </div>
 
               <div className="auth-switch" role="tablist" aria-label="Authentication mode">
-                <button className={authMode === 'signup' ? 'active' : ''} onClick={() => { setAuthMode('signup'); setError(''); }}>Sign up</button>
-                <button className={authMode === 'signin' ? 'active' : ''} onClick={() => { setAuthMode('signin'); setError(''); }}>Sign in</button>
+                <button className={authMode === 'signup' ? 'active' : ''} onClick={() => { setAuthMode('signup'); setError(''); setAuthForm(EMPTY_AUTH_FORM); }}>Sign up</button>
+                <button className={authMode === 'signin' ? 'active' : ''} onClick={() => { setAuthMode('signin'); setError(''); setAuthForm(EMPTY_AUTH_FORM); }}>Sign in</button>
               </div>
 
               <form className="auth-form" onSubmit={handleEmailAuth}>
@@ -336,8 +352,8 @@ export default function HomePage() {
                     <input
                       autoComplete="name"
                       placeholder="Enter full name"
-                      value={authForm.fullName}
-                      onChange={e => setAuthForm(p => ({ ...p, fullName:e.target.value }))}
+                      value={authForm.name}
+                      onChange={e => setAuthForm(p => ({ ...p, name:e.target.value }))}
                     />
                   </label>
                 )}
