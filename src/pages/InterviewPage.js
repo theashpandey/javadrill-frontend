@@ -16,6 +16,7 @@ const PRICE      = { 30: 5, 60: 10 };
 const SCREENS    = { HOME: 'home', INTERVIEW: 'interview', REPORT: 'report' };
 const INITIAL_SILENT_SEC = 14;
 const ANSWER_PAUSE_SEC = 5;
+const SPEECH_ACTIVITY_GRACE_MS = 1800;
 const MIN_CONTINUE_SECONDS = 90;
 const MAX_RESUME_BYTES = 5 * 1024 * 1024;
 
@@ -75,6 +76,8 @@ export default function InterviewPage() {
   const submittingRef = useRef(false);
   const completingRef = useRef(false);
   const silencePromptedRef = useRef(false);
+  const lastSpeechAtRef = useRef(0);
+  const speechActiveRef = useRef(false);
 
   useEffect(() => { answersRef.current   = answers;   }, [answers]);
   useEffect(() => { feedbacksRef.current = feedbacks; }, [feedbacks]);
@@ -124,6 +127,13 @@ export default function InterviewPage() {
     setSilentCount(0); setAutoWarn(false);
 
     silentRef.current = setInterval(() => {
+      const recentlySpeaking = speechActiveRef.current || (Date.now() - lastSpeechAtRef.current < SPEECH_ACTIVITY_GRACE_MS);
+      if (recentlySpeaking) {
+        silentCntRef.current = 0;
+        setSilentCount(0);
+        setAutoWarn(false);
+        return;
+      }
       silentCntRef.current += 1;
       setSilentCount(silentCntRef.current);
       if (silentCntRef.current >= limit - 2) setAutoWarn(true);
@@ -139,7 +149,9 @@ export default function InterviewPage() {
             silencePromptedRef.current = true;
             voice.speak("Take your time. You can start with whatever comes to mind, even a rough answer is fine.", () => {
               setMicReady(true);
-              voice.startListening((display) => {
+              voice.startListening((display, final, meta) => {
+                speechActiveRef.current = Boolean(meta?.hasInterim);
+                if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
                 transcriptRef.current = display;
                 if (display !== lastTxRef.current) {
                   lastTxRef.current = display;
@@ -277,7 +289,9 @@ export default function InterviewPage() {
 
     voice.speak(fullText, () => {
       setMicReady(true);
-      voice.startListening((display, final) => {
+      voice.startListening((display, final, meta) => {
+        speechActiveRef.current = Boolean(meta?.hasInterim);
+        if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
         transcriptRef.current = display || final || '';
         if (display !== lastTxRef.current) {
           lastTxRef.current = display;
@@ -294,6 +308,11 @@ export default function InterviewPage() {
   // ── Submit answer → get feedback ──
   const submitAnswer = useCallback(async () => {
     if (submittingRef.current) return;
+    if (voice.isListening && (speechActiveRef.current || Date.now() - lastSpeechAtRef.current < SPEECH_ACTIVITY_GRACE_MS)) {
+      clearInterval(silentRef.current);
+      startSilentTimer();
+      return;
+    }
     const qIndex = currentQRef.current;
     const question = sessionQsRef.current[qIndex];
     const questionId = question?.id;
@@ -611,7 +630,11 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
           )}
           {!voice.isListening && !submitting && (
             <Button variant="secondary" size="md" onClick={() => {
-              voice.startListening((display, final) => { transcriptRef.current = display || final || ''; });
+              voice.startListening((display, final, meta) => {
+                speechActiveRef.current = Boolean(meta?.hasInterim);
+                if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
+                transcriptRef.current = display || final || '';
+              });
               startSilentTimer();
             }}>
               🎤 Retry Mic

@@ -8,6 +8,7 @@ import AdminDashboardLayout from './pages/AdminDashboardLayout';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminFeedbackPage from './pages/AdminFeedbackPage';
 import AdminGeminiMonitoringPage from './pages/AdminGeminiMonitoringPage';
+import AdminRedeemsPage from './pages/AdminRedeemsPage';
 import InterviewPage from './pages/InterviewPage';
 import PerformancePage from './pages/PerformancePage';
 import HistoryPage   from './pages/HistoryPage';
@@ -107,6 +108,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<Navigate to="/admin/users" replace />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="feedback" element={<AdminFeedbackPage />} />
+        <Route path="redeems" element={<AdminRedeemsPage />} />
         <Route path="gemini-monitoring" element={<AdminGeminiMonitoringPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -5,6 +5,8 @@ import {
   getAuth,
   getRedirectResult,
   GoogleAuthProvider,
+  linkWithPopup,
+  linkWithRedirect,
   onAuthStateChanged,
   setPersistence,
   signInWithEmailAndPassword,
@@ -52,11 +54,19 @@ export async function signInWithGoogle() {
   await setPersistence(auth, browserLocalPersistence);
 
   try {
+    if (auth.currentUser && !auth.currentUser.providerData.some(p => p.providerId === 'google.com')) {
+      const result = await linkWithPopup(auth.currentUser, googleProvider);
+      return toUserAuthData(result.user);
+    }
     const result = await signInWithPopup(auth, googleProvider);
     return toUserAuthData(result.user);
   } catch (error) {
     if (!popupFallbackCodes.has(error?.code)) throw error;
-    await signInWithRedirect(auth, googleProvider);
+    if (auth.currentUser && !auth.currentUser.providerData.some(p => p.providerId === 'google.com')) {
+      await linkWithRedirect(auth.currentUser, googleProvider);
+    } else {
+      await signInWithRedirect(auth, googleProvider);
+    }
     return null;
   }
 }

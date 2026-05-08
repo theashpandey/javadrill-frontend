@@ -15,6 +15,7 @@ const AppContext = createContext(null);
 export function AppProvider({ children }) {
   const [user, setUser]       = useState(null);
   const [wallet, setWallet]   = useState(0);
+  const [walletDetails, setWalletDetails] = useState({ purchasedCredits:0, bonusCredits:0, totalCredits:0, redeemableBalance:0, upiId:'' });
   const [hasResume, setHasResume] = useState(false);
   const [interviewRole, setInterviewRole] = useState('');
   const [experienceLevel, setExperienceLevel] = useState('');
@@ -36,8 +37,16 @@ export function AppProvider({ children }) {
 
   const applyProfile = useCallback((userData, profile) => {
     const merged = { ...userData, ...profile };
+    const total = profile.totalCredits ?? profile.walletCredits ?? 0;
     setUser(merged);
-    setWallet(profile.walletCredits ?? 0);
+    setWallet(total);
+    setWalletDetails({
+      purchasedCredits: profile.purchasedCredits ?? total,
+      bonusCredits: profile.bonusCredits ?? 0,
+      totalCredits: total,
+      redeemableBalance: profile.purchasedCredits ?? total,
+      upiId: profile.upiId || '',
+    });
     setHasResume(profile.hasResume ?? false);
     setInterviewRole(profile.interviewRole || '');
     setExperienceLevel(profile.experienceLevel || '');
@@ -54,6 +63,7 @@ export function AppProvider({ children }) {
       if (!firebaseUser) {
         setUser(null);
         setWallet(0);
+        setWalletDetails({ purchasedCredits:0, bonusCredits:0, totalCredits:0, redeemableBalance:0, upiId:'' });
         setHasResume(false);
         setInterviewRole('');
         setExperienceLevel('');
@@ -76,6 +86,7 @@ export function AppProvider({ children }) {
         await firebaseSignOut();
         setUser(null);
         setWallet(0);
+        setWalletDetails({ purchasedCredits:0, bonusCredits:0, totalCredits:0, redeemableBalance:0, upiId:'' });
         setHasResume(false);
         setInterviewRole('');
         setExperienceLevel('');
@@ -133,6 +144,7 @@ export function AppProvider({ children }) {
     await firebaseSignOut();
     setUser(null);
     setWallet(0);
+    setWalletDetails({ purchasedCredits:0, bonusCredits:0, totalCredits:0, redeemableBalance:0, upiId:'' });
     setHasResume(false);
     setInterviewRole('');
     setExperienceLevel('');
@@ -142,14 +154,31 @@ export function AppProvider({ children }) {
   const refreshWallet = useCallback(async () => {
     try {
       const data = await apiCall('/api/wallet/balance');
-      setWallet(data.credits ?? 0);
+      const total = data.totalCredits ?? data.credits ?? 0;
+      setWallet(total);
+      setWalletDetails({
+        purchasedCredits: data.purchasedCredits ?? total,
+        bonusCredits: data.bonusCredits ?? 0,
+        totalCredits: total,
+        redeemableBalance: data.redeemableBalance ?? data.purchasedCredits ?? total,
+        upiId: data.upiId || '',
+      });
+      return data;
     } catch {}
   }, []);
 
   const refreshProfile = useCallback(async () => {
     try {
       const data = await apiCall('/api/auth/me');
-      setWallet(data.walletCredits ?? 0);
+      const total = data.totalCredits ?? data.walletCredits ?? 0;
+      setWallet(total);
+      setWalletDetails(prev => ({
+        ...prev,
+        purchasedCredits: data.purchasedCredits ?? total,
+        bonusCredits: data.bonusCredits ?? 0,
+        totalCredits: total,
+        redeemableBalance: data.purchasedCredits ?? total,
+      }));
       setHasResume(data.hasResume ?? false);
       setInterviewRole(data.interviewRole || '');
       setExperienceLevel(data.experienceLevel || '');
@@ -176,7 +205,7 @@ export function AppProvider({ children }) {
       user, signIn, signOut, loading,
       authenticateWithEmail,
       authReady,
-      wallet, setWallet, deductWallet, addWallet, refreshWallet,
+      wallet, setWallet, walletDetails, setWalletDetails, deductWallet, addWallet, refreshWallet,
       hasResume, setHasResume,
       interviewRole, setInterviewRole,
       experienceLevel, setExperienceLevel,

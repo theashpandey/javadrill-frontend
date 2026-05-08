@@ -3,6 +3,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 export function useVoice() {
   const [isSpeaking, setIsSpeaking]   = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isUserSpeaking, setIsUserSpeaking] = useState(false);
   const [transcript, setTranscript]   = useState('');
   const recognitionRef  = useRef(null);
   const bestVoiceRef    = useRef(null);
@@ -189,13 +190,22 @@ export function useVoice() {
 
     rec.onresult = (e) => {
       let interim = '';
+      let heardSpeech = false;
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalText += e.results[i][0].transcript + ' ';
-        else interim += e.results[i][0].transcript;
+        const piece = e.results[i][0].transcript || '';
+        if (piece.trim()) heardSpeech = true;
+        if (e.results[i].isFinal) finalText += piece + ' ';
+        else interim += piece;
       }
       const display = (finalText + interim).trim();
+      setIsUserSpeaking(heardSpeech && Boolean(interim.trim()));
       setTranscript(display);
-      onUpdate?.(display, finalText.trim());
+      onUpdate?.(display, finalText.trim(), {
+        activeSpeech: heardSpeech,
+        hasInterim: Boolean(interim.trim()),
+        lastSpeechAt: Date.now(),
+      });
+      if (!interim.trim()) setTimeout(() => setIsUserSpeaking(false), 350);
     };
 
     rec.onerror = (e) => {
@@ -227,12 +237,13 @@ export function useVoice() {
       recognitionRef.current = null;
     }
     setIsListening(false);
+    setIsUserSpeaking(false);
   }, []);
 
   const resetTranscript = useCallback(() => setTranscript(''), []);
 
   return {
-    isSpeaking, isListening, transcript,
+    isSpeaking, isListening, isUserSpeaking, transcript,
     speak, stopSpeaking, startListening, stopListening, resetTranscript,
   };
 }

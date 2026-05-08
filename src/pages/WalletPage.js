@@ -4,19 +4,23 @@ import { apiCall } from '../utils/api';
 import { Card, Button, Spinner } from '../components/UI';
 
 const PACKS = [
-  { credits:10,  price:10,  label:'Single',  popular:false, desc:'1 session' },
-  { credits:25,  price:24,  label:'Starter', popular:false, desc:'2-3 sessions' },
-  { credits:50,  price:45,  label:'Pro',     popular:true,  desc:'5 sessions' },
-  { credits:100, price:80,  label:'Elite',   popular:false, desc:'10 sessions' },
+  { credits:10,  price:10,  label:'Single',  popular:false, bonus:0,  desc:'1 session' },
+  { credits:35,  price:29,  label:'Starter', popular:false, bonus:5,  desc:'3-7 sessions' },
+  { credits:70,  price:59,  label:'Pro',     popular:true,  bonus:10, desc:'7-14 sessions' },
+  { credits:115, price:99,  label:'Elite',   popular:false, bonus:15, desc:'11-23 sessions' },
+  { credits:220, price:199, label:'Titan',   popular:false, bonus:20, desc:'22-44 sessions' },
 ];
 
 export default function WalletPage() {
-  const { user, wallet, setWallet, refreshWallet } = useApp();
+  const { user, wallet, walletDetails, setWallet, setWalletDetails, refreshWallet } = useApp();
   const [selected, setSelected] = useState(null);
   const [paying, setPaying] = useState(false);
   const [status, setStatus] = useState('');
   const [isError, setIsError] = useState(false);
   const [txHistory, setTxHistory] = useState([]);
+  const [upiId, setUpiId] = useState('');
+  const [redeemAmount, setRedeemAmount] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
   const paymentCompletedRef = useRef(false);
 
   const loadTransactions = useCallback(async () => {
@@ -30,6 +34,10 @@ export default function WalletPage() {
     refreshWallet();
     loadTransactions();
   }, [refreshWallet, loadTransactions]);
+
+  useEffect(() => {
+    setUpiId(walletDetails?.upiId || '');
+  }, [walletDetails?.upiId]);
 
   const loadRazorpaySDK = () => new Promise((res, rej) => {
     if (window.Razorpay) { res(); return; }
@@ -87,8 +95,16 @@ export default function WalletPage() {
               }),
             });
             if (verify.success) {
-              if (typeof verify.newBalance === 'number') setWallet(verify.newBalance);
-              else await refreshWallet();
+              if (typeof verify.newBalance === 'number') {
+                setWallet(verify.newBalance);
+                setWalletDetails(prev => ({
+                  ...prev,
+                  purchasedCredits: verify.purchasedCredits ?? prev.purchasedCredits,
+                  bonusCredits: verify.bonusCredits ?? prev.bonusCredits,
+                  totalCredits: verify.newBalance,
+                  redeemableBalance: verify.purchasedCredits ?? prev.redeemableBalance,
+                }));
+              } else await refreshWallet();
               setStatus(`${selected.credits} credits added successfully.`);
               setIsError(false);
               setSelected(null);
@@ -117,6 +133,9 @@ export default function WalletPage() {
   };
 
   const creditColor = wallet < 5 ? '#ef4444' : wallet < 20 ? '#f59e0b' : '#10b981';
+  const purchasedCredits = walletDetails?.purchasedCredits ?? wallet;
+  const bonusCredits = walletDetails?.bonusCredits ?? 0;
+  const redeemableBalance = walletDetails?.redeemableBalance ?? purchasedCredits;
   const referralLink = user?.referralCode ? `${window.location.origin}/?ref=${user.referralCode}` : '';
 
   const copyReferral = async () => {
@@ -124,6 +143,64 @@ export default function WalletPage() {
     await navigator.clipboard?.writeText(referralLink);
     setStatus('Referral link copied. You get 10 credits when a new user joins with it.');
     setIsError(false);
+  };
+
+  const saveUpi = async () => {
+    try {
+      const data = await apiCall('/api/wallet/upi', {
+        method: 'POST',
+        body: JSON.stringify({ upiId }),
+      });
+      const total = data.totalCredits ?? data.credits ?? wallet;
+      setWallet(total);
+      setWalletDetails({
+        purchasedCredits: data.purchasedCredits ?? total,
+        bonusCredits: data.bonusCredits ?? 0,
+        totalCredits: total,
+        redeemableBalance: data.redeemableBalance ?? data.purchasedCredits ?? total,
+        upiId: data.upiId || upiId,
+      });
+      setStatus('UPI ID saved.');
+      setIsError(false);
+    } catch (e) {
+      setStatus(e.message || 'Could not save UPI ID.');
+      setIsError(true);
+    }
+  };
+
+  const submitRedeem = async (amountValue) => {
+    const amount = Number(amountValue || redeemAmount);
+    if (!amount || amount <= 0) {
+      setStatus('Enter a valid redeem amount.');
+      setIsError(true);
+      return;
+    }
+    setRedeeming(true);
+    setStatus('');
+    try {
+      const data = await apiCall('/api/wallet/redeem', {
+        method: 'POST',
+        body: JSON.stringify({ amount, upiId }),
+      });
+      setWallet(data.totalCredits ?? 0);
+      setWalletDetails(prev => ({
+        ...prev,
+        purchasedCredits: data.purchasedCredits ?? 0,
+        bonusCredits: data.bonusCredits ?? 0,
+        totalCredits: data.totalCredits ?? 0,
+        redeemableBalance: data.purchasedCredits ?? 0,
+        upiId,
+      }));
+      setRedeemAmount('');
+      setStatus(data.message || 'Redeem request submitted.');
+      setIsError(false);
+      await loadTransactions();
+    } catch (e) {
+      setStatus(e.message || 'Redeem request failed.');
+      setIsError(true);
+    } finally {
+      setRedeeming(false);
+    }
   };
 
   return (
@@ -185,6 +262,11 @@ export default function WalletPage() {
             <div style={{ fontSize:'13px', color:'var(--text2)' }}>
               About {Math.floor(wallet / 10)} full sessions or {Math.floor(wallet / 5)} quick sessions.
             </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'0.65rem', marginTop:'1rem' }}>
+              <MiniStat label="Purchased" value={purchasedCredits} />
+              <MiniStat label="Bonus" value={bonusCredits} />
+              <MiniStat label="Redeemable" value={redeemableBalance} />
+            </div>
             {wallet < 5 && (
               <div style={{ marginTop:'0.85rem', padding:'0.6rem 0.85rem', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:'8px', fontSize:'12px', color:'#ef4444' }}>
                 Low balance. Top up to continue practising.
@@ -208,6 +290,7 @@ export default function WalletPage() {
                 <div style={{ fontWeight:600, fontSize:'13px', marginBottom:'0.2rem' }}>{pack.label}</div>
                 <div style={{ fontFamily:'var(--font-display)', fontSize:'22px', fontWeight:700, color:'#818cf8', marginBottom:'0.2rem' }}>Rs {pack.price}</div>
                 <div style={{ fontSize:'11px', color:'var(--text3)', marginBottom:'0.2rem' }}>{pack.credits} credits</div>
+                {pack.bonus > 0 && <div style={{ fontSize:'10px', color:'#10b981', marginBottom:'0.2rem' }}>+{pack.bonus} bonus</div>}
                 <div style={{ fontSize:'10px', color:'var(--text3)' }}>{pack.desc}</div>
               </div>
             ))}
@@ -230,6 +313,28 @@ export default function WalletPage() {
           <div style={{ fontSize:'12px', color:'var(--text3)', textAlign:'center', lineHeight:1.6 }}>
             Secure payment via Razorpay. Credits never expire. No subscription.
           </div>
+
+          <Card style={{ padding:'1.25rem' }}>
+            <div style={{ fontSize:'12px', fontWeight:700, color:'var(--text2)', marginBottom:'0.75rem', textTransform:'uppercase', letterSpacing:'1px' }}>Redeem Purchased Credits</div>
+            <div style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) auto', gap:'0.65rem', alignItems:'end', marginBottom:'0.75rem' }}>
+              <label style={{ display:'grid', gap:'0.35rem', fontSize:'12px', color:'var(--text3)' }}>
+                UPI ID
+                <input value={upiId} onChange={e => setUpiId(e.target.value)} placeholder="name@upi" style={inputStyle} />
+              </label>
+              <Button size="sm" variant="secondary" onClick={saveUpi}>Save</Button>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) auto auto', gap:'0.65rem', alignItems:'end' }}>
+              <label style={{ display:'grid', gap:'0.35rem', fontSize:'12px', color:'var(--text3)' }}>
+                Amount
+                <input type="number" min="1" max={redeemableBalance} value={redeemAmount} onChange={e => setRedeemAmount(e.target.value)} placeholder={`Max ${redeemableBalance}`} style={inputStyle} />
+              </label>
+              <Button size="sm" variant="secondary" disabled={!redeemableBalance || redeeming} onClick={() => submitRedeem(redeemableBalance)}>Full</Button>
+              <Button size="sm" disabled={!redeemableBalance || redeeming} onClick={() => submitRedeem()}>{redeeming ? 'Sending...' : 'Redeem'}</Button>
+            </div>
+            <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:'0.7rem', lineHeight:1.5 }}>
+              Only purchased credits are redeemable. Creating any redeem request resets current bonus credits to 0.
+            </div>
+          </Card>
         </div>
 
         <aside className="wallet-side">
@@ -253,7 +358,7 @@ export default function WalletPage() {
             <Card style={{ padding:'1.1rem' }}>
               <div style={{ fontSize:'12px', fontWeight:600, color:'var(--text2)', marginBottom:'0.75rem', textTransform:'uppercase', letterSpacing:'1px' }}>Recent Transactions</div>
               {txHistory.slice(0,8).map((tx, i) => {
-                const isCredit = tx.type === 'credit';
+                const isCredit = ['credit','RECHARGE','BONUS','REDEEM_REFUND','REFERRAL_BONUS','FIRST_LOGIN_BONUS'].includes(tx.type);
                 const date = tx.createdAt ? new Date(tx.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
                 return (
                   <div key={tx.id || i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', padding:'0.65rem 0', borderBottom: i<Math.min(txHistory.length,8)-1?'1px solid var(--border2)':'none', fontSize:'13px' }}>
@@ -274,3 +379,22 @@ export default function WalletPage() {
     </div>
   );
 }
+
+function MiniStat({ label, value }) {
+  return (
+    <div style={{ padding:'0.65rem', borderRadius:10, background:'rgba(8,8,18,0.38)', border:'1px solid rgba(255,255,255,0.05)' }}>
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:'16px', color:'var(--text)', fontWeight:700 }}>{value ?? 0}</div>
+      <div style={{ color:'var(--text3)', fontSize:'10px', marginTop:'2px' }}>{label}</div>
+    </div>
+  );
+}
+
+const inputStyle = {
+  width:'100%',
+  minHeight:40,
+  borderRadius:10,
+  border:'1px solid rgba(255,255,255,0.08)',
+  background:'rgba(8,8,18,0.7)',
+  color:'var(--text)',
+  padding:'0 0.75rem',
+};

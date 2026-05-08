@@ -23,9 +23,10 @@ const STEPS = [
 
 const PLANS = [
   { name:'Free', price:'₹0', desc:'10 credits on signup', tag:'Try it', features:['1 full 60-min session','Resume upload','Interview report'] },
-  { name:'Starter', price:'₹24', desc:'25 credits', tag:'Warm up', features:['2-3 sessions','History access','AI feedback'] },
-  { name:'Pro', price:'₹45', desc:'50 credits', tag:'Popular', featured:true, features:['5 sessions','Deep analysis','Category trends'] },
-  { name:'Elite', price:'₹80', desc:'100 credits', tag:'Best value', features:['10 sessions','Full dashboard','Long-term tracking'] },
+  { name:'Starter', price:'₹29', desc:'35 credits', tag:'+5 bonus', features:['3-7 sessions','History access','AI feedback'] },
+  { name:'Pro', price:'₹59', desc:'70 credits', tag:'+10 bonus', featured:true, features:['7-14 sessions','Deep analysis','Category trends'] },
+  { name:'Elite', price:'₹99', desc:'115 credits', tag:'+15 bonus', features:['11-23 sessions','Full dashboard','Long-term tracking'] },
+  { name:'Titan', price:'₹199', desc:'220 credits', tag:'+20 bonus', features:['22-44 sessions','Long-term tracking','Best value'] },
 ];
 
 const FAQS = [
@@ -76,7 +77,7 @@ export default function HomePage() {
     catch (err) {
       const code = err?.code || '';
       if (code.includes('account-exists-with-different-credential')) {
-        setError('This email already has a password login. Please sign in with email and password first.');
+        setError('This email already has a password login. Sign in with email once, then use Continue with Google to link both methods.');
       } else {
         setError('Sign-in failed. Please try again.');
       }

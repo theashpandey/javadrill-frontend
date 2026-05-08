@@ -20,7 +20,7 @@ export default function DashboardLayout({
   showFeedbackButton = true,
   maxWidth = 1040,
 }) {
-  const { user, signOut, wallet, refreshProfile } = useApp();
+  const { user, signIn, signOut, wallet, refreshProfile } = useApp();
   const navigate = useNavigate();
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -101,6 +101,14 @@ export default function DashboardLayout({
           onMouseOver={e => e.currentTarget.style.background='rgba(99,102,241,0.16)'}
           onMouseOut={e  => e.currentTarget.style.background='rgba(99,102,241,0.08)'}>
           💬 Send Feedback
+        </button>}
+        {showWallet && <button onClick={async () => { await signIn(); await refreshProfile(); }} style={{
+          width:'100%', padding:'0.5rem', borderRadius:'9px', marginBottom:'0.4rem',
+          background:'rgba(99,102,241,0.08)', border:'1px solid rgba(99,102,241,0.15)',
+          color:'#818cf8', fontSize:'12.5px', cursor:'pointer',
+          display:'flex', alignItems:'center', gap:'0.5rem', justifyContent:'center',
+        }}>
+          Link Google
         </button>}
         <button onClick={handleSignOut} style={{
           width:'100%', padding:'0.5rem', borderRadius:'9px',
