@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { signInWithGoogle, firebaseSignOut, subscribeToAuthState, toUserData, completeRedirectSignIn } from '../utils/firebase';
+import {
+  signInWithGoogle,
+  signInWithEmail,
+  signUpWithEmail,
+  firebaseSignOut,
+  subscribeToAuthState,
+  toUserData,
+  completeRedirectSignIn,
+} from '../utils/firebase';
 import { apiCall } from '../utils/api';
 
 const AppContext = createContext(null);
@@ -100,6 +108,27 @@ export function AppProvider({ children }) {
     }
   };
 
+  const authenticateWithEmail = async ({ mode, fullName, email, password }) => {
+    try {
+      setLoading(true);
+      const userData = mode === 'signup'
+        ? await signUpWithEmail({ fullName, email, password })
+        : await signInWithEmail({ email, password });
+      const referralCode = getPendingReferralCode();
+      const profile = await apiCall('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ referralCode }),
+      });
+      if (profile?.isNewUser) localStorage.removeItem('javadrill_referral_code');
+      applyProfile(userData, profile);
+    } catch (error) {
+      console.error('Email authentication failed:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     await firebaseSignOut();
     setUser(null);
@@ -145,6 +174,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       user, signIn, signOut, loading,
+      authenticateWithEmail,
       authReady,
       wallet, setWallet, deductWallet, addWallet, refreshWallet,
       hasResume, setHasResume,

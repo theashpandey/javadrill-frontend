@@ -1,14 +1,17 @@
 import { initializeApp } from "firebase/app";
 import {
   browserLocalPersistence,
+  createUserWithEmailAndPassword,
   getAuth,
   getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   setPersistence,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
   signOut,
+  updateProfile,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -25,6 +28,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
+export const DEFAULT_AVATAR_URL = `${window.location.origin}/default-avatar.svg`;
 
 const popupFallbackCodes = new Set([
   "auth/popup-blocked",
@@ -38,7 +42,7 @@ const toUserAuthData = async (user) => {
     uid: user.uid,
     name: user.displayName,
     email: user.email,
-    photoUrl: user.photoURL,
+    photoUrl: user.photoURL || DEFAULT_AVATAR_URL,
     avatar: user.displayName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
     idToken,
   };
@@ -55,6 +59,24 @@ export async function signInWithGoogle() {
     await signInWithRedirect(auth, googleProvider);
     return null;
   }
+}
+
+export async function signUpWithEmail({ fullName, email, password }) {
+  await setPersistence(auth, browserLocalPersistence);
+  const cleanName = fullName.trim();
+  const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
+  await updateProfile(result.user, {
+    displayName: cleanName,
+    photoURL: DEFAULT_AVATAR_URL,
+  });
+  await result.user.getIdToken(true);
+  return toUserAuthData(result.user);
+}
+
+export async function signInWithEmail({ email, password }) {
+  await setPersistence(auth, browserLocalPersistence);
+  const result = await signInWithEmailAndPassword(auth, email.trim(), password);
+  return toUserAuthData(result.user);
 }
 
 export async function completeRedirectSignIn() {
@@ -77,7 +99,7 @@ export function toUserData(user) {
     uid: user.uid,
     name: user.displayName,
     email: user.email,
-    photoUrl: user.photoURL,
+    photoUrl: user.photoURL || DEFAULT_AVATAR_URL,
     avatar: user.displayName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
   };
 }

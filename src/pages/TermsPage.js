@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet-async';
 const SECTIONS = [
   ['Acceptance of Terms', 'By using JavaDrill, you agree to these terms. JavaDrill is an AI-powered interview preparation platform. Use of the platform is subject to these terms and our Privacy Policy.'],
   ['Service Description', 'JavaDrill provides AI-powered role-based mock interviews using voice recognition and AI language models. The service is for educational and practice purposes only. We do not guarantee job placement or interview success.'],
-  ['User Accounts', 'You must use a Google account to access protected features. You are responsible for maintaining the security of your account and must not share your account with others.'],
+  ['User Accounts', 'You must use a Google account or email/password account to access protected features. You are responsible for maintaining the security of your account and must not share your account with others.'],
   ['Credits and Payments', 'Credits are purchased through Razorpay and are non-transferable. Credits are deducted when an interview session starts. See our Refund Policy for unused credits and technical issue cases.'],
   ['Acceptable Use', 'You may not use JavaDrill to generate harmful content, abuse the platform, attempt to bypass payment or authentication, reverse-engineer the service, or violate applicable laws.'],
   ['AI Output', 'AI-generated questions, feedback, scores, and analysis may be imperfect. You should use them as practice guidance, not as professional hiring advice or guaranteed evaluation.'],

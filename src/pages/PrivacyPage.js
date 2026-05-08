@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 
 const SECTIONS = [
-  ['Information We Collect', 'We collect your name, email address, and profile photo through Google Sign-In. We also store resume text that you upload, interview answer transcripts, feedback, wallet transaction records, and performance analytics from your sessions. We do not store raw audio.'],
+  ['Information We Collect', 'We collect your name, email address, and profile photo through Google Sign-In or email/password authentication. Email/password accounts use a default JavaDrill avatar. We also store resume text that you upload, interview answer transcripts, feedback, wallet transaction records, and performance analytics from your sessions. We do not store raw audio.'],
   ['How We Use Your Data', 'Your resume and interview data is used to generate personalized interview questions, live feedback, scoring, and performance analysis. We do not sell your personal data to third parties.'],
   ['Data Storage', 'User profile, wallet, resume text, interview history, feedback, and contact records are stored in Google Firestore and associated with your Firebase account UID.'],
   ['AI Processing', 'Your resume and answer transcripts may be sent to Google Gemini API for question generation, feedback, scoring, and analysis. Google API processing policies apply to these requests.'],
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
     <div style={{ minHeight:'100vh', background:'var(--bg)', padding:'clamp(1rem, 4vw, 2rem)' }}>
       <Helmet>
         <title>Privacy Policy | JavaDrill</title>
-        <meta name="description" content="Read how JavaDrill handles Google sign-in data, resumes, interview transcripts, AI processing, payments, and deletion requests." />
+        <meta name="description" content="Read how JavaDrill handles sign-in data, resumes, interview transcripts, AI processing, payments, and deletion requests." />
         <link rel="canonical" href="https://javadrill.app/privacy" />
       </Helmet>
       <div style={{ maxWidth:760, margin:'0 auto' }}>

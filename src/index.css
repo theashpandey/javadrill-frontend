@@ -595,6 +595,158 @@ body::before {
   font-size: 13px;
 }
 
+.auth-modal-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.auth-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(3,6,18,0.72);
+  backdrop-filter: blur(14px);
+}
+.auth-modal {
+  position: relative;
+  width: min(100%, 430px);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  padding: 1.25rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(20,20,42,0.98), rgba(10,10,24,0.98));
+  border: 1px solid rgba(129,140,248,0.24);
+  box-shadow: 0 32px 90px rgba(0,0,0,0.54), 0 0 50px rgba(99,102,241,0.14);
+  animation: slide-up 0.22s ease;
+}
+.auth-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text2);
+  font-size: 16px;
+}
+.auth-modal-brand {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 0.8rem;
+  align-items: center;
+  padding-right: 2.4rem;
+}
+.auth-modal-brand b {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0;
+}
+.auth-modal-brand p {
+  margin-top: 0.25rem;
+  color: var(--text2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.auth-switch {
+  margin-top: 1.2rem;
+  padding: 0.25rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.auth-switch button {
+  min-height: 40px;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text2);
+  font-weight: 700;
+}
+.auth-switch button.active {
+  background: linear-gradient(135deg, rgba(99,102,241,0.95), rgba(129,140,248,0.95));
+  color: white;
+  box-shadow: 0 10px 24px rgba(99,102,241,0.2);
+}
+.auth-form {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.85rem;
+}
+.auth-form label {
+  display: grid;
+  gap: 0.4rem;
+}
+.auth-form label span {
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 700;
+}
+.auth-error {
+  margin-top: 0;
+  padding: 0.7rem 0.8rem;
+  border-radius: 10px;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.18);
+}
+.auth-submit {
+  width: 100%;
+}
+.auth-divider {
+  position: relative;
+  margin: 1.05rem 0;
+  text-align: center;
+  color: var(--text3);
+  font-size: 12px;
+}
+.auth-divider::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
+.auth-divider span {
+  position: relative;
+  padding: 0 0.75rem;
+  background: #111128;
+}
+.auth-google-btn {
+  width: 100%;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.1);
+  font-weight: 700;
+}
+.auth-google-btn span {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: white;
+  color: #111827;
+  font-family: Arial, sans-serif;
+  font-weight: 800;
+}
+
 .dashboard-content-frame h1,
 .dashboard-content-frame h2,
 .dashboard-content-frame h3 {
@@ -650,6 +802,18 @@ body::before {
   }
   .home-feature-card {
     min-height: auto;
+  }
+  .auth-modal-shell {
+    align-items: flex-end;
+    padding: 0.5rem;
+  }
+  .auth-modal {
+    width: 100%;
+    border-radius: 18px 18px 12px 12px;
+    padding: 1rem;
+  }
+  .auth-modal-brand b {
+    font-size: 20px;
   }
 }
 

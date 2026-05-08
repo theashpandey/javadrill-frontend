@@ -15,7 +15,7 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  ['01', 'Sign in', 'Use Google login and get free starting credits.'],
+  ['01', 'Sign in', 'Use Google or email login and get free starting credits.'],
   ['02', 'Upload resume', 'Sarah reads your role, experience, skills, and projects.'],
   ['03', 'Start mock', 'Pick a 30 or 60 minute voice session.'],
   ['04', 'Improve', 'Review feedback, scores, history, and trends.'],
@@ -37,9 +37,12 @@ const FAQS = [
 ];
 
 export default function HomePage() {
-  const { signIn, loading } = useApp();
+  const { signIn, authenticateWithEmail, loading } = useApp();
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState('');
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('signup');
+  const [authForm, setAuthForm] = useState({ fullName:'', email:'', password:'' });
   const [contactForm, setContactForm] = useState({ name:'', email:'', message:'' });
   const [contactSending, setContactSending] = useState(false);
   const [contactDone, setContactDone] = useState(false);
@@ -51,12 +54,43 @@ export default function HomePage() {
     if (ref) localStorage.setItem('javadrill_referral_code', ref.trim().toUpperCase());
   }, []);
 
-  const handleSignIn = async () => {
+  const openAuth = (mode = 'signup') => {
+    setAuthMode(mode);
+    setError('');
+    setAuthOpen(true);
+  };
+
+  const handleGoogleSignIn = async () => {
     setSigningIn(true);
     setError('');
     try { await signIn(); }
     catch { setError('Sign-in failed. Please try again.'); }
     finally { setSigningIn(false); }
+  };
+
+  const handleEmailAuth = async (event) => {
+    event.preventDefault();
+    if (authMode === 'signup' && !authForm.fullName.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+    if (!authForm.email.trim() || !authForm.password) {
+      setError('Please enter your email and password.');
+      return;
+    }
+    setSigningIn(true);
+    setError('');
+    try {
+      await authenticateWithEmail({ mode: authMode, ...authForm });
+    } catch (err) {
+      const code = err?.code || '';
+      if (code.includes('email-already-in-use')) setError('This email is already registered. Please sign in.');
+      else if (code.includes('invalid-credential') || code.includes('wrong-password')) setError('Email or password is incorrect.');
+      else if (code.includes('weak-password')) setError('Password should be at least 6 characters.');
+      else setError('Authentication failed. Please try again.');
+    } finally {
+      setSigningIn(false);
+    }
   };
 
   const sendContact = async () => {
@@ -121,8 +155,8 @@ export default function HomePage() {
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
           </nav>
-          <button className="home-nav-cta" onClick={handleSignIn} disabled={signingIn || loading}>
-            {signingIn ? 'Signing in...' : 'Start Free'}
+          <button className="home-nav-cta" onClick={() => openAuth('signup')} disabled={signingIn || loading}>
+            Start Free
           </button>
         </header>
 
@@ -136,8 +170,8 @@ export default function HomePage() {
  </p>
               {error && <div className="home-error">{error}</div>}
               <div className="home-hero-actions">
-                <button className="home-primary-btn" onClick={handleSignIn} disabled={signingIn || loading}>
-                  {signingIn ? <><Spinner size={17} color="white" /> Signing in</> : 'Start free with 10 credits'}
+                <button className="home-primary-btn" onClick={() => openAuth('signup')} disabled={signingIn || loading}>
+                  Start free with 10 credits
                 </button>
                 <a className="home-secondary-btn" href="#features">Explore features</a>
               </div>
@@ -277,6 +311,72 @@ export default function HomePage() {
             <a href="#contact">Contact</a>
           </div>
         </footer>
+        {authOpen && (
+          <div className="auth-modal-shell" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+            <button className="auth-modal-backdrop" aria-label="Close authentication" onClick={() => setAuthOpen(false)} />
+            <div className="auth-modal">
+              <button className="auth-close" aria-label="Close" onClick={() => setAuthOpen(false)}>x</button>
+              <div className="auth-modal-brand">
+                <span className="home-logo">⚡</span>
+                <div>
+                  <b id="auth-title">{authMode === 'signup' ? 'Create your account' : 'Welcome back'}</b>
+                  <p>{authMode === 'signup' ? 'Start with free interview credits.' : 'Continue your practice dashboard.'}</p>
+                </div>
+              </div>
+
+              <div className="auth-switch" role="tablist" aria-label="Authentication mode">
+                <button className={authMode === 'signup' ? 'active' : ''} onClick={() => { setAuthMode('signup'); setError(''); }}>Sign up</button>
+                <button className={authMode === 'signin' ? 'active' : ''} onClick={() => { setAuthMode('signin'); setError(''); }}>Sign in</button>
+              </div>
+
+              <form className="auth-form" onSubmit={handleEmailAuth}>
+                {authMode === 'signup' && (
+                  <label>
+                    <span>Full name</span>
+                    <input
+                      autoComplete="name"
+                      placeholder="Enter full name"
+                      value={authForm.fullName}
+                      onChange={e => setAuthForm(p => ({ ...p, fullName:e.target.value }))}
+                    />
+                  </label>
+                )}
+                <label>
+                  <span>Email</span>
+                  <input
+                    autoComplete="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={authForm.email}
+                    onChange={e => setAuthForm(p => ({ ...p, email:e.target.value }))}
+                  />
+                </label>
+                <label>
+                  <span>Password</span>
+                  <input
+                    autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
+                    type="password"
+                    placeholder="Minimum 6 characters"
+                    value={authForm.password}
+                    onChange={e => setAuthForm(p => ({ ...p, password:e.target.value }))}
+                  />
+                </label>
+
+                {error && <div className="home-error auth-error">{error}</div>}
+
+                <button className="home-primary-btn auth-submit" type="submit" disabled={signingIn || loading}>
+                  {signingIn || loading ? <><Spinner size={17} color="white" /> Please wait</> : (authMode === 'signup' ? 'Create account' : 'Sign in')}
+                </button>
+              </form>
+
+              <div className="auth-divider"><span>or</span></div>
+              <button className="auth-google-btn" onClick={handleGoogleSignIn} disabled={signingIn || loading}>
+                <span>G</span>
+                Continue with Google
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
