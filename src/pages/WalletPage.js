@@ -274,7 +274,7 @@ export default function WalletPage() {
             )}
           </Card>
 
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:'0.75rem' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(5,minmax(130px,1fr))', gap:'0.75rem' }}>
             {PACKS.map(pack => (
               <div key={pack.credits} onClick={() => setSelected(pack)} style={{
                 padding:'1.1rem', borderRadius:'14px', cursor:'pointer', transition:'all 0.25s', textAlign:'center', position:'relative',
