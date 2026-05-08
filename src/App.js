@@ -18,6 +18,15 @@ import TermsPage     from './pages/TermsPage';
 import RefundPage    from './pages/RefundPage';
 import { Spinner } from './components/UI';
 
+const ADMIN_EMAILS = (process.env.REACT_APP_ADMIN_EMAILS || 'ashish9145826@gmail.com')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean);
+
+function isAdminUser(user) {
+  return Boolean(user?.isAdmin || (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())));
+}
+
 function AppLoadingScreen() {
   return (
     <div style={{
@@ -64,7 +73,7 @@ function ProtectedRoute({ children }) {
   const { user, authReady } = useApp();
   if (!authReady) return <AppLoadingScreen />;
   if (!user) return <Navigate to="/" replace />;
-  if (user.isAdmin) return <Navigate to="/admin/users" replace />;
+  if (isAdminUser(user)) return <Navigate to="/admin/users" replace />;
   return children;
 }
 
@@ -72,13 +81,13 @@ function AdminRoute({ children }) {
   const { user, authReady } = useApp();
   if (!authReady) return <AppLoadingScreen />;
   if (!user) return <Navigate to="/" replace />;
-  return user.isAdmin ? children : <Navigate to="/dashboard/interview" replace />;
+  return isAdminUser(user) ? children : <Navigate to="/dashboard/interview" replace />;
 }
 
 function AppRoutes() {
   const { user, authReady } = useApp();
   if (!authReady) return <AppLoadingScreen />;
-  const homeRedirect = user?.isAdmin ? '/admin/users' : '/dashboard/interview';
+  const homeRedirect = isAdminUser(user) ? '/admin/users' : '/dashboard/interview';
   return (
     <Routes>
       <Route path="/" element={user ? <Navigate to={homeRedirect} replace /> : <HomePage />} />
@@ -95,6 +104,7 @@ function AppRoutes() {
       </Route>
       <Route path="/admin" element={<AdminRoute><AdminDashboardLayout /></AdminRoute>}>
         <Route index element={<Navigate to="users" replace />} />
+        <Route path="dashboard" element={<Navigate to="/admin/users" replace />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="feedback" element={<AdminFeedbackPage />} />
         <Route path="gemini-monitoring" element={<AdminGeminiMonitoringPage />} />

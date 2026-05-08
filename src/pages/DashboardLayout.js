@@ -11,7 +11,15 @@ const NAV = [
   { path:'wallet',      icon:'💰', label:'Wallet',       desc:'Credits & billing' },
 ];
 
-export default function DashboardLayout() {
+export default function DashboardLayout({
+  navItems = NAV,
+  basePath = '/dashboard',
+  sectionLabel = 'Menu',
+  badgeLabel = '',
+  showWallet = true,
+  showFeedbackButton = true,
+  maxWidth = 1040,
+}) {
   const { user, signOut, wallet, refreshProfile } = useApp();
   const navigate = useNavigate();
   const [mobileOpen,   setMobileOpen]   = useState(false);
@@ -51,17 +59,18 @@ export default function DashboardLayout() {
           </div>
         </div>
         {/* Wallet chip */}
-        <div style={{ padding:'0.45rem 0.8rem', background:creditColor+'12', border:`1px solid ${creditColor}28`, borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        {showWallet && <div style={{ padding:'0.45rem 0.8rem', background:creditColor+'12', border:`1px solid ${creditColor}28`, borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontSize:'11px', color:'var(--text3)' }}>💰 Credits</span>
           <span style={{ fontSize:'14px', fontWeight:700, color:creditColor, fontFamily:'var(--font-mono)' }}>{wallet}</span>
-        </div>
+        </div>}
+        {badgeLabel && <div style={{ padding:'0.45rem 0.8rem', background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.22)', borderRadius:'8px', color:'#818cf8', fontSize:'11px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1px' }}>{badgeLabel}</div>}
       </div>
 
       {/* Nav links */}
       <nav style={{ padding:'0.75rem 0.65rem', flex:1, overflowY:'auto' }}>
-        <div style={{ fontSize:'9px', color:'var(--text3)', fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', padding:'0 0.75rem', marginBottom:'0.5rem' }}>Menu</div>
-        {NAV.map(item => (
-          <NavLink key={item.path} to={`/dashboard/${item.path}`}
+        <div style={{ fontSize:'9px', color:'var(--text3)', fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', padding:'0 0.75rem', marginBottom:'0.5rem' }}>{sectionLabel}</div>
+        {navItems.map(item => (
+          <NavLink key={item.path} to={`${basePath}/${item.path}`}
             onClick={() => setMobileOpen(false)}
             style={({ isActive }) => ({
               display:'flex', alignItems:'center', gap:'0.7rem',
@@ -83,7 +92,7 @@ export default function DashboardLayout() {
 
       {/* Bottom buttons */}
       <div style={{ padding:'0.75rem 0.65rem', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
-        <button onClick={() => setShowFeedback(true)} style={{
+        {showFeedbackButton && <button onClick={() => setShowFeedback(true)} style={{
           width:'100%', padding:'0.55rem 0.85rem', borderRadius:'9px', marginBottom:'0.4rem',
           background:'rgba(99,102,241,0.08)', border:'1px solid rgba(99,102,241,0.15)',
           color:'#818cf8', fontSize:'12.5px', cursor:'pointer', transition:'all 0.2s',
@@ -92,7 +101,7 @@ export default function DashboardLayout() {
           onMouseOver={e => e.currentTarget.style.background='rgba(99,102,241,0.16)'}
           onMouseOut={e  => e.currentTarget.style.background='rgba(99,102,241,0.08)'}>
           💬 Send Feedback
-        </button>
+        </button>}
         <button onClick={handleSignOut} style={{
           width:'100%', padding:'0.5rem', borderRadius:'9px',
           background:'transparent', border:'1px solid rgba(255,255,255,0.05)',
@@ -121,7 +130,9 @@ export default function DashboardLayout() {
           
         <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'17px' , marginLeft:'10px'}}>Java<span style={{ color:'#818cf8' }}>Drill</span></span>
        </div> <div style={{ display:'flex', alignItems:'center', gap:'0.65rem' }}>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize:'13px', color:creditColor, fontWeight:700 }}>{wallet}cr</span>
+          {showWallet
+            ? <span style={{ fontFamily:'var(--font-mono)', fontSize:'13px', color:creditColor, fontWeight:700 }}>{wallet}cr</span>
+            : badgeLabel && <span style={{ fontFamily:'var(--font-mono)', fontSize:'11px', color:'#818cf8', fontWeight:700 }}>{badgeLabel}</span>}
           <button onClick={() => setMobileOpen(!mobileOpen)} style={{ width:34, height:34, borderRadius:'8px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', color:'var(--text)', fontSize:'15px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
             {mobileOpen ? '✕' : '☰'}
           </button>
@@ -140,7 +151,7 @@ export default function DashboardLayout() {
 
       {/* Main content */}
       <main className="main-content" style={{ flex:1, marginLeft:242, padding:'2.25rem', minHeight:'100vh', display:'flex', justifyContent:'center' }}>
-        <div className="dashboard-content-frame" style={{ width:'100%', maxWidth:1040 }}>
+        <div className="dashboard-content-frame" style={{ width:'100%', maxWidth }}>
           <Outlet />
         </div>
       </main>
