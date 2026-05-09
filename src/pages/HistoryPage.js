@@ -246,7 +246,22 @@ function DetailView({ item, onBack }) {
                   </div>
                 </div>
 
-                {q.answer && (
+                {q.type === 'coding' && q.codingSubmission && (
+                  <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.75, padding:'0.75rem', background:'rgba(20,20,42,0.5)', borderRadius:'8px', marginBottom:'0.5rem', borderLeft:'3px solid rgba(99,102,241,0.35)' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', gap:'0.75rem', flexWrap:'wrap', marginBottom:'0.5rem' }}>
+                      <span style={{ fontSize:'10px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px' }}>Coding Submission</span>
+                      <span style={{ fontSize:'11px', color:'#818cf8', fontFamily:'var(--font-mono)' }}>
+                        {q.codingSubmission.language || 'code'} · {q.codingSubmission.score || 0}/100 · {Math.round((q.codingSubmission.timeTakenMs || 0) / 1000)}s
+                      </span>
+                    </div>
+                    <pre style={{ margin:0, whiteSpace:'pre-wrap', overflowX:'auto', fontFamily:'var(--font-mono)', fontSize:'12px', color:'#c4b5fd' }}>{q.codingSubmission.code || '(no code submitted)'}</pre>
+                    {q.codingSubmission.aiEvaluation && (
+                      <div style={{ marginTop:'0.75rem', color:'#86efac' }}>{q.codingSubmission.aiEvaluation}</div>
+                    )}
+                  </div>
+                )}
+
+                {q.type !== 'coding' && q.answer && (
                   <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.75, padding:'0.75rem', background:'rgba(20,20,42,0.5)', borderRadius:'8px', marginBottom:'0.5rem', borderLeft:'3px solid rgba(148,163,184,0.25)' }}>
                     <div style={{ fontSize:'10px', color:'var(--text3)', marginBottom:'0.35rem', textTransform:'uppercase', letterSpacing:'1px' }}>Your Answer</div>
                     {q.answer}

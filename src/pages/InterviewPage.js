@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { apiCall } from '../utils/api';
 import { useVoice } from '../hooks/useVoice';
+import Editor from '@monaco-editor/react';
 import {
   CAT_COLORS,
   INTERVIEW_ROLES,
@@ -55,6 +56,13 @@ export default function InterviewPage() {
   const [completionMessage, setCompletionMessage] = useState('');
   const [interviewId, setInterviewId] = useState(null);
 
+  // Coding state
+  const [isCodingQuestion, setIsCodingQuestion] = useState(false);
+  const [code, setCode] = useState('');
+  const [language, setLanguage] = useState('java');
+  const [codingTimer, setCodingTimer] = useState(0);
+  const [codingStartTime, setCodingStartTime] = useState(null);
+
   // Timer
   const [timeLeft, setTimeLeft]       = useState(0);
   const [silentCount, setSilentCount] = useState(0);
@@ -65,6 +73,7 @@ export default function InterviewPage() {
   const silentRef     = useRef(null);
   const prepareRef    = useRef(null);
   const silentCntRef  = useRef(0);
+  const codingTimerRef = useRef(null);
 
   // Stable refs
   const answersRef    = useRef([]);
@@ -76,6 +85,10 @@ export default function InterviewPage() {
   const interviewIdRef = useRef(null);
   const timeLeftRef   = useRef(0);
   const submittingRef = useRef(false);
+  const isCodingQuestionRef = useRef(false);
+  const codeRef = useRef('');
+  const languageRef = useRef('java');
+  const codingStartTimeRef = useRef(null);
   const completingRef = useRef(false);
   const silencePromptedRef = useRef(false);
   const lastSpeechAtRef = useRef(0);
@@ -86,10 +99,14 @@ export default function InterviewPage() {
   useEffect(() => { sessionQsRef.current = sessionQs; }, [sessionQs]);
   useEffect(() => { currentQRef.current  = currentQ;  }, [currentQ]);
   useEffect(() => { timeLeftRef.current  = timeLeft;  }, [timeLeft]);
+  useEffect(() => { isCodingQuestionRef.current = isCodingQuestion; }, [isCodingQuestion]);
+  useEffect(() => { codeRef.current = code; }, [code]);
+  useEffect(() => { languageRef.current = language; }, [language]);
+  useEffect(() => { codingStartTimeRef.current = codingStartTime; }, [codingStartTime]);
 
   useEffect(() => () => {
     voice.stopSpeaking(); voice.stopListening();
-    clearInterval(timerRef.current); clearInterval(silentRef.current); clearInterval(prepareRef.current);
+    clearInterval(timerRef.current); clearInterval(silentRef.current); clearInterval(prepareRef.current); clearInterval(codingTimerRef.current);
   }, []);
 
   const clearPrepareTimer = useCallback(() => {
@@ -97,6 +114,29 @@ export default function InterviewPage() {
     prepareRef.current = null;
     setPrepareCount(null);
   }, []);
+
+  const codingDraftKey = useCallback((question) => {
+    if (!interviewIdRef.current || !question?.id) return '';
+    return `javadrill_coding_draft_${interviewIdRef.current}_${question.id}`;
+  }, []);
+
+  useEffect(() => {
+    if (!isCodingQuestion) return;
+    const question = sessionQsRef.current[currentQRef.current];
+    const key = codingDraftKey(question);
+    if (key) localStorage.setItem(key, code);
+  }, [code, isCodingQuestion, codingDraftKey]);
+
+  useEffect(() => {
+    const warnBeforeUnload = (event) => {
+      if (screen === SCREENS.INTERVIEW && (codeRef.current.trim() || voice.transcript?.trim())) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [screen, voice.transcript]);
 
   // ── Format MM:SS ──
   const fmt = secs => {
@@ -285,6 +325,7 @@ export default function InterviewPage() {
     if (!q) return;
 
     clearInterval(silentRef.current);
+    clearInterval(codingTimerRef.current);
     clearPrepareTimer();
     setShowFeedback(false); setFeedbackText('');
     setMicReady(false);
@@ -293,58 +334,93 @@ export default function InterviewPage() {
     silencePromptedRef.current = false;
     voice.resetTranscript();
 
-    // Natural conversational intros — vary them
-    const intros = idx === 0
-      ? `Hi! I'm Sarah, your ${getRoleLabel(interviewRole)} interviewer today. Let's get started with something to warm up. `
-      : (() => {
-          const prev = answersRef.current[idx - 1] || '';
-          const picks = prev.length > 180
-            ? ["Great, I appreciate that detailed answer! Moving on — ", "That's a solid response! Let me ask you something different. ", "Nice explanation! Next question — "]
-            : prev.length > 50
-            ? ["Noted, thanks. Here's the next one. ", "Alright, let's continue. ", "Good. Moving on — "]
-            : ["Okay, next question. ", "Alright — ", "Let's try this one. "];
-          return picks[idx % picks.length];
-        })();
+    // Check if coding question
+    const isCoding = q.type === 'coding';
+    setIsCodingQuestion(isCoding);
 
-    const fullText = intros + q.question;
-    setAiText(fullText);
+    if (isCoding) {
+      // Setup coding mode
+      const codingData = q.codingData || {};
+      setLanguage(codingData.language || 'java');
+      languageRef.current = codingData.language || 'java';
+      const savedDraft = localStorage.getItem(codingDraftKey(q)) || '';
+      setCode(savedDraft);
+      codeRef.current = savedDraft;
+      const startedAt = Date.now();
+      setCodingStartTime(startedAt);
+      codingStartTimeRef.current = startedAt;
 
-    voice.speak(fullText, () => {
-      clearPrepareTimer();
-      let remaining = INITIAL_SILENT_SEC;
-      setPrepareCount(remaining);
-      prepareRef.current = setInterval(() => {
-        remaining -= 1;
-        setPrepareCount(remaining);
-        if (remaining <= 0) {
-          clearPrepareTimer();
-          setMicReady(true);
-          voice.startListening((display, final, meta) => {
-            speechActiveRef.current = Boolean(meta?.hasInterim);
-            if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
-            transcriptRef.current = display || final || '';
-            if (display !== lastTxRef.current) {
-              lastTxRef.current = display;
-              clearInterval(silentRef.current);
-              silentCntRef.current = 0;
-              setSilentCount(0); setAutoWarn(false);
-              startSilentTimer();
-            }
-          });
-          startSilentTimer();
-        }
+      // Set coding timer based on difficulty and session duration
+      const timerMinutes = duration === 30 ? 10 : (q.difficulty === 'easy' ? 10 : 20);
+      setCodingTimer(timerMinutes * 60);
+
+      // Start coding timer
+      codingTimerRef.current = setInterval(() => {
+        setCodingTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(codingTimerRef.current);
+            submitCodingAnswer({ auto: true });
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
-    });
-  }, [voice, startSilentTimer, interviewRole]);
 
-  // ── Submit answer → get feedback ──
+      // Speak the question
+      const fullText = (idx === 0 ? `Hi! I'm Sarah, your ${getRoleLabel(interviewRole)} interviewer today. ` : "Next question — ") + q.question;
+      setAiText(fullText);
+      voice.speak(fullText, () => {
+        // No listening for coding questions
+      });
+    } else {
+      // Normal text question
+      // Natural conversational intros — vary them
+      const intros = idx === 0
+        ? `Hi! I'm Sarah, your ${getRoleLabel(interviewRole)} interviewer today. Let's get started with something to warm up. `
+        : (() => {
+            const prev = answersRef.current[idx - 1] || '';
+            const picks = prev.length > 180
+              ? ["Great, I appreciate that detailed answer! Moving on — ", "That's a solid response! Let me ask you something different. ", "Nice explanation! Next question — "]
+              : prev.length > 50
+              ? ["Noted, thanks. Here's the next one. ", "Alright, let's continue. ", "Good. Moving on — "]
+              : ["Okay, next question. ", "Alright — ", "Let's try this one. "];
+            return picks[idx % picks.length];
+          })();
+
+      const fullText = intros + q.question;
+      setAiText(fullText);
+
+      voice.speak(fullText, () => {
+        clearPrepareTimer();
+        let remaining = INITIAL_SILENT_SEC;
+        setPrepareCount(remaining);
+        prepareRef.current = setInterval(() => {
+          remaining -= 1;
+          setPrepareCount(remaining);
+          if (remaining <= 0) {
+            clearPrepareTimer();
+            setMicReady(true);
+            voice.startListening((display, final, meta) => {
+              speechActiveRef.current = Boolean(meta?.hasInterim);
+              if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
+              transcriptRef.current = display || final || '';
+              if (display !== lastTxRef.current) {
+                lastTxRef.current = display;
+                clearInterval(silentRef.current);
+                silentCntRef.current = 0;
+                setSilentCount(0); setAutoWarn(false);
+                startSilentTimer();
+              }
+            });
+            startSilentTimer();
+          }
+        }, 1000);
+      });
+    }
+  }, [voice, startSilentTimer, interviewRole, duration, codingDraftKey]);
+
   const submitAnswer = useCallback(async () => {
     if (submittingRef.current) return;
-    if (voice.isListening && (speechActiveRef.current || Date.now() - lastSpeechAtRef.current < SPEECH_ACTIVITY_GRACE_MS)) {
-      clearInterval(silentRef.current);
-      startSilentTimer();
-      return;
-    }
     const qIndex = currentQRef.current;
     const question = sessionQsRef.current[qIndex];
     const questionId = question?.id;
@@ -397,6 +473,67 @@ export default function InterviewPage() {
     }
   }, [voice]);
 
+  const submitCodingAnswer = useCallback(async ({ auto = false } = {}) => {
+    if (submittingRef.current) return;
+    const qIndex = currentQRef.current;
+    const question = sessionQsRef.current[qIndex];
+    const questionId = question?.id;
+    if (!interviewIdRef.current || !question) return;
+
+    submittingRef.current = true;
+    const currentCode = codeRef.current || '';
+    const currentLanguage = languageRef.current || 'java';
+    const startedAt = codingStartTimeRef.current;
+    const timeTakenMs = startedAt ? Date.now() - startedAt : 0;
+    clearInterval(codingTimerRef.current);
+    setSubmitting(true);
+
+    const upd = [...answersRef.current];
+    upd[qIndex] = currentCode.trim() || '(no code submitted)';
+    setAnswers(upd); answersRef.current = upd;
+
+    try {
+      const res = await apiCall('/api/interview/submit-coding', {
+        method: 'POST',
+        body: JSON.stringify({
+          interviewId: interviewIdRef.current,
+          questionId,
+          code: currentCode.trim(),
+          language: currentLanguage,
+          timeTakenMs,
+          questionIndex: qIndex,
+        }),
+      });
+
+      const fb = res.feedback || "Code submitted! Let's keep going.";
+      const key = codingDraftKey(question);
+      if (key) localStorage.removeItem(key);
+      const fupd = [...feedbacksRef.current]; fupd[qIndex] = fb;
+      setFeedbacks(fupd); feedbacksRef.current = fupd;
+      setFeedbackText(fb); setShowFeedback(true);
+
+      // Speak feedback → auto-advance if time left
+      voice.speak(fb, () => {
+        setTimeout(() => {
+          if (currentQRef.current !== qIndex) return;
+          if (timeLeftRef.current > MIN_CONTINUE_SECONDS) {
+            nextQuestion();
+          }
+        }, 1200);
+      });
+    } catch (e) {
+      const fb = auto
+        ? "Time is up. I saved your code locally for this screen, but could not send it for analysis right now."
+        : "I could not submit the code right now. Please try again.";
+      const fupd = [...feedbacksRef.current]; fupd[qIndex] = fb;
+      setFeedbacks(fupd); feedbacksRef.current = fupd;
+      setFeedbackText(fb); setShowFeedback(true);
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  }, [codingDraftKey, voice]);
+
   const fetchNextQuestion = useCallback(async () => {
     if (!interviewIdRef.current) return null;
     setLoadingNextQuestion(true);
@@ -422,6 +559,12 @@ export default function InterviewPage() {
   const nextQuestion = useCallback(async () => {
     if (submittingRef.current) return;
     voice.stopSpeaking();
+    // Clear coding state
+    setIsCodingQuestion(false);
+    setCode('');
+    setCodingTimer(0);
+    setCodingStartTime(null);
+    clearInterval(codingTimerRef.current);
     const next = currentQRef.current + 1;
     if (next < sessionQsRef.current.length) {
       setCurrentQ(next); currentQRef.current = next;
@@ -465,6 +608,9 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
     }
 
     try {
+      if (submitCurrent && isCodingQuestionRef.current && question) {
+        await submitCodingAnswer({ auto: true });
+      }
       if (submitCurrent && pendingAnswer && question) {
         const upd = [...answersRef.current];
         upd[qIndex] = pendingAnswer;
@@ -501,7 +647,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
     } finally {
       completingRef.current = false;
     }
-}, [voice]);
+}, [voice, submitCodingAnswer]);
 
   const restart = () => {
     voice.stopSpeaking(); voice.stopListening();
@@ -513,6 +659,13 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
     setSilentCount(0); setAutoWarn(false);
     setInterviewId(null); interviewIdRef.current = null;
     answersRef.current = []; feedbacksRef.current = []; sessionQsRef.current = [];
+    // Clear coding state
+    setIsCodingQuestion(false);
+    setCode('');
+    setLanguage('java');
+    setCodingTimer(0);
+    setCodingStartTime(null);
+    clearInterval(codingTimerRef.current);
   };
 
   // ── RENDER ──
@@ -593,7 +746,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
             background:tColor+'18', border:`1px solid ${tColor}30`, transition:'color 0.5s',
             minWidth:80, textAlign:'center',
           }}>
-            {fmt(timeLeft)}
+            {isCodingQuestion ? fmt(codingTimer) : fmt(timeLeft)}
           </div>
         </div>
       </Card>
@@ -628,62 +781,91 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
         </div>
       </Card>
 
-      {/* User transcript box */}
-      <Card style={{ padding:'1.1rem', background:'rgba(8,8,18,0.8)' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.65rem' }}>
-          <span style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1.5px' }}>Your Answer</span>
-          {voice.isListening && (
-            <div style={{ display:'flex', alignItems:'center', gap:'0.4rem' }}>
-              <span style={{ width:7, height:7, borderRadius:'50%', background:'#ef4444', display:'inline-block', animation:'pulse-glow 0.6s infinite' }} />
-              <span style={{ fontSize:'11px', color:'#ef4444', fontFamily:'var(--font-mono)' }}>LIVE</span>
+      {/* User input area */}
+      {isCodingQuestion ? (
+        <CodingEditor
+          code={code}
+          setCode={setCode}
+          language={language}
+          setLanguage={setLanguage}
+          onSubmit={submitCodingAnswer}
+          submitting={submitting}
+          timer={codingTimer}
+        />
+      ) : (
+        <Card style={{ padding:'1.1rem', background:'rgba(8,8,18,0.8)' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.65rem' }}>
+            <span style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1.5px' }}>Your Answer</span>
+            {voice.isListening && (
+              <div style={{ display:'flex', alignItems:'center', gap:'0.4rem' }}>
+                <span style={{ width:7, height:7, borderRadius:'50%', background:'#ef4444', display:'inline-block', animation:'pulse-glow 0.6s infinite' }} />
+                <span style={{ fontSize:'11px', color:'#ef4444', fontFamily:'var(--font-mono)' }}>LIVE</span>
+              </div>
+            )}
+          </div>
+          <div style={{ minHeight:72, fontSize:'14.5px', lineHeight:1.75, color: voice.transcript || prepareCount != null ? 'var(--text)' : 'var(--text3)', fontStyle: voice.transcript || prepareCount != null ? 'normal' : 'italic' }}>
+            {prepareCount != null
+              ? `Listening starts in ${prepareCount}s...`
+              : voice.transcript || 'Mic activates automatically after Sarah finishes speaking...'}
+          </div>
+
+          {prepareCount != null && (
+            <div style={{ marginTop:'0.75rem', padding:'0.45rem 0.75rem', background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:'8px', fontSize:'12px', color:'#60a5fa', display:'flex', alignItems:'center', gap:'0.5rem' }}>
+              ⏳ Reading time left: {prepareCount}s
             </div>
           )}
-        </div>
-        <div style={{ minHeight:72, fontSize:'14.5px', lineHeight:1.75, color: voice.transcript || prepareCount != null ? 'var(--text)' : 'var(--text3)', fontStyle: voice.transcript || prepareCount != null ? 'normal' : 'italic' }}>
-          {prepareCount != null
-            ? `Listening starts in ${prepareCount}s...`
-            : voice.transcript || 'Mic activates automatically after Sarah finishes speaking...'}
-        </div>
 
-        {prepareCount != null && (
-          <div style={{ marginTop:'0.75rem', padding:'0.45rem 0.75rem', background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:'8px', fontSize:'12px', color:'#60a5fa', display:'flex', alignItems:'center', gap:'0.5rem' }}>
-            ⏳ Reading time left: {prepareCount}s
-          </div>
-        )}
-
-        {/* Silent countdown warning */}
-        {autoWarn && voice.isListening && (
-          <div style={{ marginTop:'0.75rem', padding:'0.45rem 0.75rem', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.25)', borderRadius:'8px', fontSize:'12px', color:'#f59e0b', display:'flex', alignItems:'center', gap:'0.5rem' }}>
-            ⏱ Auto-submitting in {silentLimit - silentCount}s...
-            {voice.transcript && <span style={{ color:'var(--text3)' }}>or click Submit now</span>}
-          </div>
-        )}
-      </Card>
+          {/* Silent countdown warning */}
+          {autoWarn && voice.isListening && (
+            <div style={{ marginTop:'0.75rem', padding:'0.45rem 0.75rem', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.25)', borderRadius:'8px', fontSize:'12px', color:'#f59e0b', display:'flex', alignItems:'center', gap:'0.5rem' }}>
+              ⏱ Auto-submitting in {silentLimit - silentCount}s...
+              {voice.transcript && <span style={{ color:'var(--text3)' }}>or click Submit now</span>}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Controls */}
-      {micReady && !showFeedback && (
+      {!showFeedback && (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'0.85rem', flexWrap:'wrap' }}>
-          {voice.isListening && voice.transcript && !submitting && (
-            <Button onClick={submitAnswer} variant="primary" size="md">
-              ✓ Submit Answer
-            </Button>
-          )}
-          {!voice.isListening && !submitting && (
-            <Button variant="secondary" size="md" onClick={() => {
-              voice.startListening((display, final, meta) => {
-                speechActiveRef.current = Boolean(meta?.hasInterim);
-                if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
-                transcriptRef.current = display || final || '';
-              });
-              startSilentTimer();
-            }}>
-              🎤 Retry Mic
-            </Button>
-          )}
-          {submitting && (
-            <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', color:'var(--text2)', fontSize:'13px' }}>
-              <Spinner size={18} /> Getting Sarah's feedback...
-            </div>
+          {isCodingQuestion ? (
+            <>
+              {code.trim() && !submitting && (
+                <Button onClick={submitCodingAnswer} variant="primary" size="md">
+                  ✓ Submit Code
+                </Button>
+              )}
+              {submitting && (
+                <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', color:'var(--text2)', fontSize:'13px' }}>
+                  <Spinner size={18} /> Analyzing your code...
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {micReady && voice.isListening && voice.transcript && !submitting && (
+                <Button onClick={submitAnswer} variant="primary" size="md">
+                  ✓ Submit Answer
+                </Button>
+              )}
+              {!voice.isListening && !submitting && (
+                <Button variant="secondary" size="md" onClick={() => {
+                  voice.startListening((display, final, meta) => {
+                    speechActiveRef.current = Boolean(meta?.hasInterim);
+                    if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
+                    transcriptRef.current = display || final || '';
+                  });
+                  startSilentTimer();
+                }}>
+                  🎤 Retry Mic
+                </Button>
+              )}
+              {submitting && (
+                <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', color:'var(--text2)', fontSize:'13px' }}>
+                  <Spinner size={18} /> Getting Sarah's feedback...
+                </div>
+              )}
+            </>
           )}
           <Button variant="ghost" size="sm" onClick={doShowReport} style={{ color:'var(--text3)', fontSize:'12px' }}>
             End Session
@@ -717,6 +899,88 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
         }
       `}</style>
     </div>
+  );
+}
+
+// ── Coding Editor Component ──
+function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitting, timer }) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const languages = [
+    { value: 'java', label: 'Java' },
+    { value: 'javascript', label: 'JavaScript' },
+    { value: 'python', label: 'Python' },
+    { value: 'cpp', label: 'C++' },
+    { value: 'csharp', label: 'C#' },
+  ];
+
+  return (
+    <Card style={{
+      padding: '1.1rem',
+      background: 'rgba(8,8,18,0.8)',
+      height: isFullscreen ? '80vh' : '400px',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+            Code Editor
+          </span>
+          <select
+            value={language}
+            onChange={e => setLanguage(e.target.value)}
+            style={{
+              fontSize: '11px',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(20,20,42,0.8)',
+              color: 'var(--text)',
+            }}
+          >
+            {languages.map(lang => (
+              <option key={lang.value} value={lang.value}>{lang.label}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '11px', color: timer < 60 ? '#ef4444' : 'var(--text3)' }}>
+            ⏱ {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            style={{ fontSize: '11px', padding: '2px 6px' }}
+          >
+            {isFullscreen ? '⛶' : '⛶'}
+          </Button>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, borderRadius: '8px', overflow: 'hidden' }}>
+        <Editor
+          height="100%"
+          language={language}
+          value={code}
+          onChange={setCode}
+          theme="vs-dark"
+          options={{
+            minimap: { enabled: false },
+            fontSize: 14,
+            lineNumbers: 'on',
+            roundedSelection: false,
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            wordWrap: 'on',
+            tabSize: 2,
+            insertSpaces: true,
+            detectIndentation: false,
+          }}
+        />
+      </div>
+    </Card>
   );
 }
 
@@ -913,7 +1177,7 @@ function ReportScreen({ scores, completionMessage, sessionQs, answers, feedbacks
           {sessionQs.map((q, i) => (
             <div key={i} style={{ borderBottom: i < sessionQs.length-1 ? '1px solid var(--border2)' : 'none', padding:'0.9rem 0' }}>
               <div style={{ fontSize:'13.5px', fontWeight:500, color:'#93c5fd', lineHeight:1.5, marginBottom:'0.4rem' }}>Q{i+1}. {q.question}</div>
-              <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.7 }}>{answers[i] || '(no answer recorded)'}</div>
+              <pre style={{ margin:0, whiteSpace:'pre-wrap', overflowX:'auto', fontFamily:q.type === 'coding' ? 'var(--font-mono)' : 'inherit', fontSize:'13px', color:'var(--text2)', lineHeight:1.7 }}>{answers[i] || (q.type === 'coding' ? '(no code submitted)' : '(no answer recorded)')}</pre>
             </div>
           ))}
         </Card>
@@ -986,7 +1250,7 @@ function ReportScreen({ scores, completionMessage, sessionQs, answers, feedbacks
               <div style={{ paddingBottom:'1rem', paddingLeft:'1.5rem', animation:'slide-up 0.2s ease' }}>
                 <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.75, marginBottom:'0.6rem', padding:'0.75rem', background:'rgba(20,20,42,0.5)', borderRadius:'8px', borderLeft:'3px solid rgba(148,163,184,0.3)' }}>
                   <span style={{ fontSize:'11px', color:'var(--text3)', display:'block', marginBottom:'0.35rem' }}>YOUR ANSWER</span>
-                  {answers[i] || '(no answer recorded)'}
+                  {answers[i] || (q.type === 'coding' ? '(no code submitted)' : '(no answer recorded)')}
                 </div>
                 {feedbacks[i] && (
                   <div style={{ fontSize:'13px', color:'#86efac', lineHeight:1.75, padding:'0.75rem', background:'rgba(16,185,129,0.06)', borderRadius:'8px', borderLeft:'3px solid rgba(16,185,129,0.4)' }}>

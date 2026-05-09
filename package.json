@@ -10,7 +10,8 @@
     "framer-motion": "^10.16.4",
     "recharts": "^2.10.1",
     "react-scripts": "5.0.1",
-    "firebase": "^10.7.0"
+    "firebase": "^10.7.0",
+    "@monaco-editor/react": "^4.6.0"
   },
   "scripts": {
     "start": "react-scripts start",
