@@ -342,8 +342,8 @@ export default function HomePage() {
               </div>
 
               <div className="auth-switch" role="tablist" aria-label="Authentication mode">
-                <button className={authMode === 'signup' ? 'active' : ''} onClick={() => { setAuthMode('signup'); setError(''); setAuthForm(EMPTY_AUTH_FORM); }}>Sign up</button>
-                <button className={authMode === 'signin' ? 'active' : ''} onClick={() => { setAuthMode('signin'); setError(''); setAuthForm(EMPTY_AUTH_FORM); }}>Sign in</button>
+                <button type="button" className={authMode === 'signup' ? 'active' : ''} aria-selected={authMode === 'signup'} onClick={() => { setAuthMode('signup'); setError(''); setAuthForm(EMPTY_AUTH_FORM); }}>Sign up</button>
+                <button type="button" className={authMode === 'signin' ? 'active' : ''} aria-selected={authMode === 'signin'} onClick={() => { setAuthMode('signin'); setError(''); setAuthForm(EMPTY_AUTH_FORM); }}>Sign in</button>
               </div>
 
               <form className="auth-form" onSubmit={handleEmailAuth}>
