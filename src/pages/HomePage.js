@@ -44,7 +44,7 @@ export default function HomePage() {
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState('');
   const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState('signup');
+  const [authMode, setAuthMode] = useState('signin');
   const [authForm, setAuthForm] = useState(EMPTY_AUTH_FORM);
   const [contactForm, setContactForm] = useState({ name:'', email:'', message:'' });
   const [contactSending, setContactSending] = useState(false);
@@ -57,7 +57,7 @@ export default function HomePage() {
     if (ref) localStorage.setItem('javadrill_referral_code', ref.trim().toUpperCase());
   }, []);
 
-  const openAuth = (mode = 'signup') => {
+  const openAuth = (mode = 'signin') => {
     setAuthMode(mode);
     setError('');
     setAuthForm(EMPTY_AUTH_FORM);
