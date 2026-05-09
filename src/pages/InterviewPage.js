@@ -473,7 +473,7 @@ export default function InterviewPage() {
     }
   }, [voice]);
 
-  const submitCodingAnswer = useCallback(async ({ auto = false } = {}) => {
+  const submitCodingAnswer = useCallback(async ({ auto = false, advance = true } = {}) => {
     if (submittingRef.current) return;
     const qIndex = currentQRef.current;
     const question = sessionQsRef.current[qIndex];
@@ -507,7 +507,9 @@ export default function InterviewPage() {
 
       const fb = res.feedback || "Code submitted! Let's keep going.";
       const key = codingDraftKey(question);
+      const shouldAdvanceAfterCodingFeedback = advance;
       if (key) localStorage.removeItem(key);
+      if (!shouldAdvanceAfterCodingFeedback) return;
       const fupd = [...feedbacksRef.current]; fupd[qIndex] = fb;
       setFeedbacks(fupd); feedbacksRef.current = fupd;
       setFeedbackText(fb); setShowFeedback(true);
@@ -609,7 +611,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
 
     try {
       if (submitCurrent && isCodingQuestionRef.current && question) {
-        await submitCodingAnswer({ auto: true });
+        await submitCodingAnswer({ auto: true, advance: false });
       }
       if (submitCurrent && pendingAnswer && question) {
         const upd = [...answersRef.current];
@@ -846,18 +848,6 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
               {micReady && voice.isListening && voice.transcript && !submitting && (
                 <Button onClick={submitAnswer} variant="primary" size="md">
                   ✓ Submit Answer
-                </Button>
-              )}
-              {!voice.isListening && !submitting && (
-                <Button variant="secondary" size="md" onClick={() => {
-                  voice.startListening((display, final, meta) => {
-                    speechActiveRef.current = Boolean(meta?.hasInterim);
-                    if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
-                    transcriptRef.current = display || final || '';
-                  });
-                  startSilentTimer();
-                }}>
-                  🎤 Retry Mic
                 </Button>
               )}
               {submitting && (
