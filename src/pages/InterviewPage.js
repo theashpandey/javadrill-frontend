@@ -60,8 +60,10 @@ export default function InterviewPage() {
   const [silentCount, setSilentCount] = useState(0);
   const [silentLimit, setSilentLimit] = useState(INITIAL_SILENT_SEC);
   const [autoWarn, setAutoWarn]       = useState(false);
+  const [prepareCount, setPrepareCount] = useState(null);
   const timerRef      = useRef(null);
   const silentRef     = useRef(null);
+  const prepareRef    = useRef(null);
   const silentCntRef  = useRef(0);
 
   // Stable refs
@@ -87,7 +89,13 @@ export default function InterviewPage() {
 
   useEffect(() => () => {
     voice.stopSpeaking(); voice.stopListening();
-    clearInterval(timerRef.current); clearInterval(silentRef.current);
+    clearInterval(timerRef.current); clearInterval(silentRef.current); clearInterval(prepareRef.current);
+  }, []);
+
+  const clearPrepareTimer = useCallback(() => {
+    clearInterval(prepareRef.current);
+    prepareRef.current = null;
+    setPrepareCount(null);
   }, []);
 
   // ── Format MM:SS ──
@@ -161,10 +169,23 @@ export default function InterviewPage() {
               startSilentTimer();
             });
           } else {
+            const qIndex = currentQRef.current;
             const fb = "No worries, let's keep the momentum. We can move to the next one.";
-            const upd = [...feedbacksRef.current]; upd[currentQRef.current] = fb;
+            const answerUpd = [...answersRef.current];
+            answerUpd[qIndex] = '(no answer)';
+            setAnswers(answerUpd); answersRef.current = answerUpd;
+
+            const upd = [...feedbacksRef.current]; upd[qIndex] = fb;
             setFeedbacks(upd); feedbacksRef.current = upd;
             setFeedbackText(fb); setShowFeedback(true);
+
+            voice.speak(fb, () => {
+              setTimeout(() => {
+                if (timeLeftRef.current > MIN_CONTINUE_SECONDS) {
+                  nextQuestion();
+                }
+              }, 1200);
+            });
           }
         }
       }
@@ -264,6 +285,7 @@ export default function InterviewPage() {
     if (!q) return;
 
     clearInterval(silentRef.current);
+    clearPrepareTimer();
     setShowFeedback(false); setFeedbackText('');
     setMicReady(false);
     transcriptRef.current = '';
@@ -288,22 +310,30 @@ export default function InterviewPage() {
     setAiText(fullText);
 
     voice.speak(fullText, () => {
-      setTimeout(() => {
-        setMicReady(true);
-        voice.startListening((display, final, meta) => {
-          speechActiveRef.current = Boolean(meta?.hasInterim);
-          if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
-          transcriptRef.current = display || final || '';
-          if (display !== lastTxRef.current) {
-            lastTxRef.current = display;
-            clearInterval(silentRef.current);
-            silentCntRef.current = 0;
-            setSilentCount(0); setAutoWarn(false);
-            startSilentTimer();
-          }
-        });
-        startSilentTimer();
-      }, 14000);
+      clearPrepareTimer();
+      let remaining = INITIAL_SILENT_SEC;
+      setPrepareCount(remaining);
+      prepareRef.current = setInterval(() => {
+        remaining -= 1;
+        setPrepareCount(remaining);
+        if (remaining <= 0) {
+          clearPrepareTimer();
+          setMicReady(true);
+          voice.startListening((display, final, meta) => {
+            speechActiveRef.current = Boolean(meta?.hasInterim);
+            if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
+            transcriptRef.current = display || final || '';
+            if (display !== lastTxRef.current) {
+              lastTxRef.current = display;
+              clearInterval(silentRef.current);
+              silentCntRef.current = 0;
+              setSilentCount(0); setAutoWarn(false);
+              startSilentTimer();
+            }
+          });
+          startSilentTimer();
+        }
+      }, 1000);
     });
   }, [voice, startSilentTimer, interviewRole]);
 
@@ -609,9 +639,17 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
             </div>
           )}
         </div>
-        <div style={{ minHeight:72, fontSize:'14.5px', lineHeight:1.75, color: voice.transcript ? 'var(--text)' : 'var(--text3)', fontStyle: voice.transcript ? 'normal' : 'italic' }}>
-          {voice.transcript || 'Mic activates automatically after Sarah finishes speaking...'}
+        <div style={{ minHeight:72, fontSize:'14.5px', lineHeight:1.75, color: voice.transcript || prepareCount != null ? 'var(--text)' : 'var(--text3)', fontStyle: voice.transcript || prepareCount != null ? 'normal' : 'italic' }}>
+          {prepareCount != null
+            ? `Listening starts in ${prepareCount}s...`
+            : voice.transcript || 'Mic activates automatically after Sarah finishes speaking...'}
         </div>
+
+        {prepareCount != null && (
+          <div style={{ marginTop:'0.75rem', padding:'0.45rem 0.75rem', background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:'8px', fontSize:'12px', color:'#60a5fa', display:'flex', alignItems:'center', gap:'0.5rem' }}>
+            ⏳ Reading time left: {prepareCount}s
+          </div>
+        )}
 
         {/* Silent countdown warning */}
         {autoWarn && voice.isListening && (
