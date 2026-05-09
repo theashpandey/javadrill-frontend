@@ -80,8 +80,7 @@ export default function AdminRedeemsPage() {
                     <td style={{ ...td, minWidth:230 }}>
                       <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
                         {item.status === 'PENDING' && <Button size="sm" onClick={() => act(item.id, 'approve')} disabled={Boolean(busyId)}>Approve</Button>}
-                        {['PENDING','APPROVED'].includes(item.status) && <Button size="sm" variant="danger" onClick={() => act(item.id, 'reject')} disabled={Boolean(busyId)}>Reject</Button>}
-                        {item.status === 'APPROVED' && <Button size="sm" variant="secondary" onClick={() => act(item.id, 'done')} disabled={Boolean(busyId)}>Done</Button>}
+                        {item.status === 'PENDING' && <Button size="sm" variant="danger" onClick={() => act(item.id, 'reject')} disabled={Boolean(busyId)}>Reject</Button>}
                       </div>
                     </td>
                   </tr>
