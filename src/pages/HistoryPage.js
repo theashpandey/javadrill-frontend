@@ -82,13 +82,13 @@ export default function HistoryPage() {
 
             {i===0 && <div style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:'linear-gradient(180deg,#6366f1,#a78bfa)', borderRadius:'16px 0 0 16px' }} />}
 
-            <div style={{ display:'flex', alignItems:'center', gap:'1.1rem', flexWrap:'wrap' }} className="history-card-flex">
+            <div style={{ display:'flex', alignItems:'flex-start', gap:'1.1rem', flexWrap:'wrap' }} className="history-card-flex">
               {pending ? (
                 <div style={{ width:60, height:60, borderRadius:'50%', border:'3px solid rgba(245,158,11,0.45)', display:'flex', alignItems:'center', justifyContent:'center', color:'#f59e0b', fontSize:'11px', fontWeight:700, textAlign:'center' }}>Pending</div>
               ) : (
                 <ScoreRing score={overall} size={60} />
               )}
-              <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ flex:1, minWidth:0 }} className="history-card-meta">
                 <div style={{ display:'flex', alignItems:'center', gap:'0.65rem', marginBottom:'0.4rem', flexWrap:'wrap' }}>
                   <span style={{ fontWeight:600, fontSize:'14px' }}>{item.date}</span>
                   {i===0 && <span style={{ fontSize:'10px', padding:'2px 8px', borderRadius:'100px', background:'rgba(99,102,241,0.15)', color:'#818cf8', fontWeight:600 }}>Latest</span>}
@@ -99,10 +99,10 @@ export default function HistoryPage() {
                     </span>
                   )}
                 </div>
-                <div style={{ display:'flex', gap:'0.35rem', flexWrap:'wrap', marginBottom:'0.5rem' }}>
+                <div style={{ display:'flex', gap:'0.35rem', flexWrap:'wrap', marginBottom:'0.5rem' }} className="history-card-badges">
                   {cats.map(c => <Badge key={c} color={CAT_COLORS[c]||'#6366f1'}>{formatCategoryLabel(c)}</Badge>)}
                 </div>
-                <div style={{ display:'flex', gap:'1.25rem', fontSize:'12px', color:'var(--text3)' }}>
+                <div style={{ display:'flex', gap:'1.25rem', fontSize:'12px', color:'var(--text3)', flexWrap:'wrap' }} className="history-card-footer">
                   <span>⏱ {item.durationMinutes} min</span>
                   <span>❓ {item.questionCount} questions</span>
                   <span style={{ color:'var(--text2)' }}>→ Click to expand</span>
@@ -310,16 +310,26 @@ function DetailView({ item, onBack }) {
       )}
 
       <style>{`
+        .history-card-meta { min-width:0; }
+        .history-card-badges { display:flex; gap:0.35rem; flex-wrap:wrap; margin-bottom:0.5rem; }
+        .history-card-footer { display:flex; gap:1.25rem; flex-wrap:wrap; align-items:center; font-size:12px; color:var(--text3); }
+        .history-card-footer span { min-width:0; }
+
         @media (max-width: 768px) {
           .history-card-flex { flex-direction: column !important; align-items: flex-start !important; gap: 1rem !important; }
-          .history-score-bars { min-width: auto !important; width: 100% !important; }
+          .history-score-bars { min-width: auto !important; width: 100% !important; max-width: 100% !important; }
+          .history-card-footer { flex-direction: column !important; align-items: flex-start !important; gap: 0.5rem !important; }
+          .history-card-footer span { width: 100% !important; }
+          .history-card-badges { gap: 0.4rem !important; }
           h2 { font-size: 20px !important; }
           h3 { font-size: 16px !important; }
-          .score-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)) !important; }
+          .score-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important; }
         }
         @media (max-width: 640px) {
           .history-card-flex { gap: 0.75rem !important; }
           .history-score-bars { width: 100% !important; }
+          .history-card-footer { gap: 0.45rem !important; }
+          .history-card-badges { margin-bottom: 0.65rem !important; }
           h2 { font-size: 18px !important; }
           h3 { font-size: 14px !important; }
           .score-grid { grid-template-columns: repeat(2, 1fr) !important; }
