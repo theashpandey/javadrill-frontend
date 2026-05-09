@@ -12,6 +12,8 @@ export function useVoice() {
   const chunksRef       = useRef([]);
   const abortedRef      = useRef(false);
   const onEndCallbackRef = useRef(null);
+  const speechFrameRef  = useRef(null);
+  const pendingSpeechRef = useRef(null);
 
   const normalizeForSpeech = useCallback((value) => {
     return String(value || '')
@@ -90,7 +92,10 @@ export function useVoice() {
     synthRef.current.addEventListener?.('voiceschanged', pickBestVoice);
     synthRef.current.onvoiceschanged = pickBestVoice;
     pickBestVoice();
-    return () => { synthRef.current.cancel(); };
+    return () => {
+      synthRef.current.cancel();
+      if (speechFrameRef.current) cancelAnimationFrame(speechFrameRef.current);
+    };
   }, [pickBestVoice]);
 
   // ── SPEAK — chunked sentence-by-sentence so Chrome doesn't cut off ──
@@ -188,6 +193,24 @@ export function useVoice() {
     let finalText   = '';
     let shouldReset = true;
 
+    const publishSpeechUpdate = (payload) => {
+      pendingSpeechRef.current = payload;
+      if (speechFrameRef.current) return;
+      speechFrameRef.current = requestAnimationFrame(() => {
+        speechFrameRef.current = null;
+        const latest = pendingSpeechRef.current;
+        pendingSpeechRef.current = null;
+        if (!latest) return;
+        setIsUserSpeaking(latest.isUserSpeaking);
+        setTranscript(latest.display);
+        onUpdate?.(latest.display, latest.finalText, latest.meta);
+        if (!latest.hasInterim) setTimeout(() => setIsUserSpeaking(false), 350);
+      });
+    };
+
+    let lastDisplay = '';
+    let lastUserSpeaking = false;
+
     rec.onresult = (e) => {
       let interim = '';
       let heardSpeech = false;
@@ -198,14 +221,22 @@ export function useVoice() {
         else interim += piece;
       }
       const display = (finalText + interim).trim();
-      setIsUserSpeaking(heardSpeech && Boolean(interim.trim()));
-      setTranscript(display);
-      onUpdate?.(display, finalText.trim(), {
+      const hasInterim = Boolean(interim.trim());
+      const isUserSpeakingNow = heardSpeech && hasInterim;
+      if (display === lastDisplay && isUserSpeakingNow === lastUserSpeaking) return;
+      lastDisplay = display;
+      lastUserSpeaking = isUserSpeakingNow;
+      publishSpeechUpdate({
+        display,
+        finalText: finalText.trim(),
+        isUserSpeaking: isUserSpeakingNow,
+        hasInterim,
+        meta: {
         activeSpeech: heardSpeech,
-        hasInterim: Boolean(interim.trim()),
+          hasInterim,
         lastSpeechAt: Date.now(),
+        },
       });
-      if (!interim.trim()) setTimeout(() => setIsUserSpeaking(false), 350);
     };
 
     rec.onerror = (e) => {
@@ -235,6 +266,11 @@ export function useVoice() {
     if (recognitionRef.current) {
       try { recognitionRef.current.onend = null; recognitionRef.current.stop(); } catch {}
       recognitionRef.current = null;
+    }
+    if (speechFrameRef.current) {
+      cancelAnimationFrame(speechFrameRef.current);
+      speechFrameRef.current = null;
+      pendingSpeechRef.current = null;
     }
     setIsListening(false);
     setIsUserSpeaking(false);

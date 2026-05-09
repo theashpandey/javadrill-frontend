@@ -61,6 +61,7 @@ export default function InterviewPage() {
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('java');
   const [codingTimer, setCodingTimer] = useState(0);
+  const [codingTimerRunning, setCodingTimerRunning] = useState(false);
   const [codingStartTime, setCodingStartTime] = useState(null);
 
   // Timer
@@ -162,6 +163,8 @@ export default function InterviewPage() {
 
   const handleTimeUp = useCallback(() => {
     clearInterval(silentRef.current);
+    clearInterval(codingTimerRef.current);
+    setCodingTimerRunning(false);
     voice.stopListening();
     voice.speak("Time's up! You did great. Let me compile your results now.", () => doShowReport({ submitCurrent: true }));
   }, [voice]);
@@ -326,6 +329,7 @@ export default function InterviewPage() {
 
     clearInterval(silentRef.current);
     clearInterval(codingTimerRef.current);
+    setCodingTimerRunning(false);
     clearPrepareTimer();
     setShowFeedback(false); setFeedbackText('');
     setMicReady(false);
@@ -346,31 +350,32 @@ export default function InterviewPage() {
       const savedDraft = localStorage.getItem(codingDraftKey(q)) || '';
       setCode(savedDraft);
       codeRef.current = savedDraft;
-      const startedAt = Date.now();
-      setCodingStartTime(startedAt);
-      codingStartTimeRef.current = startedAt;
+      setCodingStartTime(null);
+      codingStartTimeRef.current = null;
 
       // Set coding timer based on difficulty and session duration
       const timerMinutes = duration === 30 ? 10 : (q.difficulty === 'easy' ? 10 : 20);
       setCodingTimer(timerMinutes * 60);
 
-      // Start coding timer
-      codingTimerRef.current = setInterval(() => {
-        setCodingTimer(prev => {
-          if (prev <= 1) {
-            clearInterval(codingTimerRef.current);
-            submitCodingAnswer({ auto: true });
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
       // Speak the question
       const fullText = (idx === 0 ? `Hi! I'm Sarah, your ${getRoleLabel(interviewRole)} interviewer today. ` : "Next question — ") + q.question;
       setAiText(fullText);
       voice.speak(fullText, () => {
-        // No listening for coding questions
+        const startedAt = Date.now();
+        setCodingStartTime(startedAt);
+        codingStartTimeRef.current = startedAt;
+        setCodingTimerRunning(true);
+        codingTimerRef.current = setInterval(() => {
+          setCodingTimer(prev => {
+            if (prev <= 1) {
+              clearInterval(codingTimerRef.current);
+              setCodingTimerRunning(false);
+              submitCodingAnswer({ auto: true });
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       });
     } else {
       // Normal text question
@@ -486,6 +491,7 @@ export default function InterviewPage() {
     const startedAt = codingStartTimeRef.current;
     const timeTakenMs = startedAt ? Date.now() - startedAt : 0;
     clearInterval(codingTimerRef.current);
+    setCodingTimerRunning(false);
     setSubmitting(true);
 
     const upd = [...answersRef.current];
@@ -565,6 +571,7 @@ export default function InterviewPage() {
     setIsCodingQuestion(false);
     setCode('');
     setCodingTimer(0);
+    setCodingTimerRunning(false);
     setCodingStartTime(null);
     clearInterval(codingTimerRef.current);
     const next = currentQRef.current + 1;
@@ -594,7 +601,8 @@ export default function InterviewPage() {
 const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
     if (completingRef.current) return;
     completingRef.current = true;
-    clearInterval(timerRef.current); clearInterval(silentRef.current);
+    clearInterval(timerRef.current); clearInterval(silentRef.current); clearInterval(codingTimerRef.current);
+    setCodingTimerRunning(false);
     const pendingAnswer = (transcriptRef.current || voice.transcript || '').trim();
     const qIndex = currentQRef.current;
     const question = sessionQsRef.current[qIndex];
@@ -666,6 +674,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
     setCode('');
     setLanguage('java');
     setCodingTimer(0);
+    setCodingTimerRunning(false);
     setCodingStartTime(null);
     clearInterval(codingTimerRef.current);
   };
@@ -703,6 +712,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
   const total  = sessionQs.length;
   const pct    = ((currentQ + 1) / total) * 100;
   const tColor = timeLeft < 120 ? '#ef4444' : timeLeft < 300 ? '#f59e0b' : '#10b981';
+  const cColor = codingTimer < 60 ? '#ef4444' : codingTimer < 180 ? '#f59e0b' : '#38bdf8';
 
   return (
     <div style={{ maxWidth:720, margin:'0 auto', display:'flex', flexDirection:'column', gap:'1rem' }}>
@@ -737,18 +747,32 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
           </div>
         </div>
 
-        <div style={{ display:'flex', alignItems:'center', gap:'1.25rem' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'0.85rem', flexWrap:'wrap', justifyContent:'flex-end' }}>
           <div style={{ textAlign:'right' }}>
             <div style={{ fontSize:'11px', color:'var(--text3)', marginBottom:4 }}>Q{currentQ+1}/{total}</div>
             <ProgressBar value={pct} color="#6366f1" height={4} style={{ width:90 }} />
           </div>
-          <div style={{
-            fontFamily:'var(--font-mono)', fontSize:'20px', fontWeight:700, color:tColor,
-            padding:'0.3rem 0.7rem', borderRadius:'8px',
-            background:tColor+'18', border:`1px solid ${tColor}30`, transition:'color 0.5s',
-            minWidth:80, textAlign:'center',
-          }}>
-            {isCodingQuestion ? fmt(codingTimer) : fmt(timeLeft)}
+          <div style={{ display:'flex', gap:'0.45rem', alignItems:'center', flexWrap:'wrap', justifyContent:'flex-end' }}>
+            <div style={{
+              fontFamily:'var(--font-mono)', color:tColor,
+              padding:'0.28rem 0.58rem', borderRadius:'8px',
+              background:tColor+'18', border:`1px solid ${tColor}30`, transition:'color 0.5s',
+              minWidth:86, textAlign:'center',
+            }}>
+              <div style={{ fontFamily:'var(--font-body)', fontSize:'9px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.8px' }}>Interview</div>
+              <div style={{ fontSize:'18px', fontWeight:700 }}>{fmt(timeLeft)}</div>
+            </div>
+            {isCodingQuestion && (
+              <div style={{
+                fontFamily:'var(--font-mono)', color:cColor,
+                padding:'0.28rem 0.58rem', borderRadius:'8px',
+                background:cColor+'14', border:`1px solid ${cColor}35`, transition:'color 0.5s',
+                minWidth:86, textAlign:'center',
+              }}>
+                <div style={{ fontFamily:'var(--font-body)', fontSize:'9px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.8px' }}>Coding</div>
+                <div style={{ fontSize:'18px', fontWeight:700 }}>{fmt(codingTimer)}</div>
+              </div>
+            )}
           </div>
         </div>
       </Card>
@@ -793,6 +817,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
           onSubmit={submitCodingAnswer}
           submitting={submitting}
           timer={codingTimer}
+          timerRunning={codingTimerRunning}
         />
       ) : (
         <Card style={{ padding:'1.1rem', background:'rgba(8,8,18,0.8)' }}>
@@ -893,8 +918,9 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
 }
 
 // ── Coding Editor Component ──
-function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitting, timer }) {
+function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitting, timer, timerRunning }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const editorRef = useRef(null);
 
   const languages = [
     { value: 'java', label: 'Java' },
@@ -904,17 +930,50 @@ function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitti
     { value: 'csharp', label: 'C#' },
   ];
 
+  const blockClipboard = useCallback((event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
+  const handleEditorMount = useCallback((editor, monaco) => {
+    editorRef.current = editor;
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {});
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX, () => {});
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => {});
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Insert, () => {});
+    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.Insert, () => {});
+    editor.onKeyDown((event) => {
+      const key = event.browserEvent?.key?.toLowerCase();
+      const isClipboardKey = (event.ctrlKey || event.metaKey) && ['c', 'x', 'v'].includes(key);
+      const isPasteInsert = event.shiftKey && event.browserEvent?.key === 'Insert';
+      if (isClipboardKey || isPasteInsert) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+  }, []);
+
   return (
     <Card style={{
-      padding: '1.1rem',
-      background: 'rgba(8,8,18,0.8)',
-      height: isFullscreen ? '80vh' : '400px',
+      padding: 0,
+      background: '#111827',
+      border: '1px solid rgba(148,163,184,0.22)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 36px rgba(0,0,0,0.24)',
+      height: isFullscreen ? '80vh' : '430px',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      overflow: 'hidden'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0.55rem 0.75rem',
+        background: 'linear-gradient(180deg,#1f2937,#111827)',
+        borderBottom: '1px solid rgba(148,163,184,0.18)',
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+          <span style={{ fontSize: '11px', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700 }}>
             Code Editor
           </span>
           <select
@@ -924,9 +983,9 @@ function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitti
               fontSize: '11px',
               padding: '2px 6px',
               borderRadius: '4px',
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(20,20,42,0.8)',
-              color: 'var(--text)',
+              border: '1px solid rgba(148,163,184,0.28)',
+              background: '#0f172a',
+              color: '#e5e7eb',
             }}
           >
             {languages.map(lang => (
@@ -935,8 +994,8 @@ function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitti
           </select>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '11px', color: timer < 60 ? '#ef4444' : 'var(--text3)' }}>
-            ⏱ {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
+          <span style={{ fontSize: '11px', color: timer < 60 ? '#f87171' : '#cbd5e1', fontFamily: 'var(--font-mono)' }}>
+            {timerRunning ? 'Coding ' : 'Starts after prompt '} {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
           </span>
           <Button
             variant="ghost"
@@ -949,16 +1008,24 @@ function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitti
         </div>
       </div>
 
-      <div style={{ flex: 1, borderRadius: '8px', overflow: 'hidden' }}>
+      <div
+        onPaste={blockClipboard}
+        onCopy={blockClipboard}
+        onCut={blockClipboard}
+        onDrop={blockClipboard}
+        onContextMenu={blockClipboard}
+        style={{ flex: 1, overflow: 'hidden', borderTop: '1px solid rgba(15,23,42,0.9)' }}
+      >
         <Editor
           height="100%"
           language={language}
           value={code}
           onChange={setCode}
+          onMount={handleEditorMount}
           theme="vs-dark"
           options={{
             minimap: { enabled: false },
-            fontSize: 14,
+            fontSize: 13,
             lineNumbers: 'on',
             roundedSelection: false,
             scrollBeyondLastLine: false,
@@ -967,6 +1034,10 @@ function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitti
             tabSize: 2,
             insertSpaces: true,
             detectIndentation: false,
+            contextmenu: false,
+            copyWithSyntaxHighlighting: false,
+            cursorBlinking: 'solid',
+            renderLineHighlight: 'line',
           }}
         />
       </div>
