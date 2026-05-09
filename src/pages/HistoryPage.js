@@ -82,7 +82,7 @@ export default function HistoryPage() {
 
             {i===0 && <div style={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:'linear-gradient(180deg,#6366f1,#a78bfa)', borderRadius:'16px 0 0 16px' }} />}
 
-            <div style={{ display:'flex', alignItems:'center', gap:'1.1rem', flexWrap:'wrap' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'1.1rem', flexWrap:'wrap' }} className="history-card-flex">
               {pending ? (
                 <div style={{ width:60, height:60, borderRadius:'50%', border:'3px solid rgba(245,158,11,0.45)', display:'flex', alignItems:'center', justifyContent:'center', color:'#f59e0b', fontSize:'11px', fontWeight:700, textAlign:'center' }}>Pending</div>
               ) : (
@@ -110,7 +110,7 @@ export default function HistoryPage() {
               </div>
 
               {/* Mini score bars */}
-              {!pending && <div style={{ display:'flex', flexDirection:'column', gap:'6px', minWidth:110, flexShrink:0 }}>
+              {!pending && <div style={{ display:'flex', flexDirection:'column', gap:'6px', minWidth:110, flexShrink:0 }} className="history-score-bars">
                 {[
                   { label:'Technical',    val:item.scores?.technical||0,    color:'#818cf8' },
                   { label:'Comm.',        val:item.scores?.communication||0, color:'#10b981' },
@@ -156,7 +156,7 @@ function DetailView({ item, onBack }) {
   return (
     <div style={{ maxWidth:800, display:'flex', flexDirection:'column', gap:'1.25rem' }}>
       {/* Back + header */}
-      <div style={{ display:'flex', alignItems:'center', gap:'1rem' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'1rem', flexWrap:'wrap' }}>
         <button onClick={onBack} style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'8px', color:'var(--text2)', padding:'0.45rem 0.85rem', cursor:'pointer', fontSize:'13px', display:'flex', alignItems:'center', gap:'0.4rem' }}>
           ← Back
         </button>
@@ -167,7 +167,7 @@ function DetailView({ item, onBack }) {
       </div>
 
       {/* Score overview */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:'0.65rem' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:'0.65rem' }} className="score-grid">
         {pending ? (
           <Card style={{ padding:'1.25rem', gridColumn:'1 / -1', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.22)' }}>
             <div style={{ color:'#f59e0b', fontSize:'13px', lineHeight:1.7 }}>
@@ -192,7 +192,7 @@ function DetailView({ item, onBack }) {
       </div>
 
       {/* Tabs */}
-      <div style={{ display:'flex', gap:'0.5rem', borderBottom:'1px solid var(--border2)', paddingBottom:'0' }}>
+      <div style={{ display:'flex', gap:'0.5rem', borderBottom:'1px solid var(--border2)', paddingBottom:'0', overflowX:'auto' }} className="tab-buttons">
         {[['overview','Overview'],['qa','Q&A Review'],['analysis','Analysis']].map(([id,label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             padding:'0.6rem 1.1rem', borderRadius:'8px 8px 0 0', border:'none', cursor:'pointer',
@@ -201,6 +201,7 @@ function DetailView({ item, onBack }) {
             fontSize:'13px', fontWeight: tab===id ? 600 : 400,
             borderBottom: tab===id ? '2px solid #6366f1' : '2px solid transparent',
             transition:'all 0.2s',
+            whiteSpace:'nowrap',
           }}>{label}</button>
         ))}
       </div>
@@ -234,11 +235,11 @@ function DetailView({ item, onBack }) {
             ? <p style={{ color:'var(--text3)', fontSize:'13px' }}>No Q&A data available for this session.</p>
             : qas.map((q, i) => (
               <div key={i} style={{ paddingBottom:'1.25rem', marginBottom:'1.25rem', borderBottom: i<qas.length-1?'1px solid var(--border2)':'none' }}>
-                <div style={{ display:'flex', gap:'0.65rem', marginBottom:'0.65rem' }}>
+                <div style={{ display:'flex', gap:'0.65rem', marginBottom:'0.65rem', flexWrap:'wrap' }}>
                   <span style={{ fontSize:'12px', color:'var(--text3)', fontFamily:'var(--font-mono)', paddingTop:3, flexShrink:0 }}>Q{i+1}</span>
-                  <div>
+                  <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:'14px', fontWeight:500, color:'#93c5fd', lineHeight:1.6, marginBottom:'0.4rem' }}>{q.question}</div>
-                    <div style={{ display:'flex', gap:'0.4rem' }}>
+                    <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
                       <Badge color={CAT_COLORS[q.category]||'#6366f1'}>{formatCategoryLabel(q.category)}</Badge>
                       {q.difficulty && <Badge color={q.difficulty==='hard'?'#ef4444':q.difficulty==='easy'?'#10b981':'#f59e0b'}>{q.difficulty}</Badge>}
                     </div>
@@ -307,6 +308,24 @@ function DetailView({ item, onBack }) {
           )}
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 768px) {
+          .history-card-flex { flex-direction: column !important; align-items: flex-start !important; gap: 1rem !important; }
+          .history-score-bars { min-width: auto !important; width: 100% !important; }
+          h2 { font-size: 20px !important; }
+          h3 { font-size: 16px !important; }
+          .score-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)) !important; }
+        }
+        @media (max-width: 640px) {
+          .history-card-flex { gap: 0.75rem !important; }
+          .history-score-bars { width: 100% !important; }
+          h2 { font-size: 18px !important; }
+          h3 { font-size: 14px !important; }
+          .score-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .tab-buttons { flex-wrap: wrap !important; }
+        }
+      `}</style>
     </div>
   );
 }
