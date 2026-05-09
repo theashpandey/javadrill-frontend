@@ -15,7 +15,7 @@ import { Button, Card, Spinner, Badge, Waveform, ProgressBar, ScoreRing } from '
 const PRICE      = { 30: 5, 60: 10 };
 const SCREENS    = { HOME: 'home', INTERVIEW: 'interview', REPORT: 'report' };
 const INITIAL_SILENT_SEC = 14;
-const ANSWER_PAUSE_SEC = 5;
+const ANSWER_PAUSE_SEC = 10;
 const SPEECH_ACTIVITY_GRACE_MS = 1800;
 const MIN_CONTINUE_SECONDS = 90;
 const MAX_RESUME_BYTES = 5 * 1024 * 1024;
@@ -288,20 +288,22 @@ export default function InterviewPage() {
     setAiText(fullText);
 
     voice.speak(fullText, () => {
-      setMicReady(true);
-      voice.startListening((display, final, meta) => {
-        speechActiveRef.current = Boolean(meta?.hasInterim);
-        if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
-        transcriptRef.current = display || final || '';
-        if (display !== lastTxRef.current) {
-          lastTxRef.current = display;
-          clearInterval(silentRef.current);
-          silentCntRef.current = 0;
-          setSilentCount(0); setAutoWarn(false);
-          startSilentTimer();
-        }
-      });
-      startSilentTimer();
+      setTimeout(() => {
+        setMicReady(true);
+        voice.startListening((display, final, meta) => {
+          speechActiveRef.current = Boolean(meta?.hasInterim);
+          if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
+          transcriptRef.current = display || final || '';
+          if (display !== lastTxRef.current) {
+            lastTxRef.current = display;
+            clearInterval(silentRef.current);
+            silentCntRef.current = 0;
+            setSilentCount(0); setAutoWarn(false);
+            startSilentTimer();
+          }
+        });
+        startSilentTimer();
+      }, 14000);
     });
   }, [voice, startSilentTimer, interviewRole]);
 
