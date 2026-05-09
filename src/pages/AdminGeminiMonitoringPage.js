@@ -184,3 +184,16 @@ function topBuckets(items) {
 const labelStyle = { display:'grid', gap:'0.35rem', color:'var(--text3)', fontSize:'11px', fontWeight:700 };
 const buttonStyle = { minHeight:42, borderRadius:10, background:'linear-gradient(135deg,#6366f1,#818cf8)', color:'white', padding:'0 1rem', fontWeight:700 };
 const errorStyle = { padding:'1rem', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'#ef4444', fontSize:'13px' };
+
+<style>{`
+  @media (max-width: 768px) {
+    .gemini-filter-grid { grid-template-columns: 1fr !important; }
+    .gemini-chart-grid { grid-template-columns: 1fr !important; }
+  }
+  @media (max-width: 640px) {
+    .gemini-filter-grid { grid-template-columns: 1fr !important; }
+    .gemini-chart-grid { grid-template-columns: 1fr !important; }
+    h2 { font-size: 20px; }
+    p { font-size: 13px; }
+  }
+`}</style>

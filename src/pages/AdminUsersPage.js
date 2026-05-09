@@ -125,6 +125,12 @@ export default function AdminUsersPage() {
           .admin-filter-row { grid-template-columns: 1fr !important; width: 100%; }
           .admin-chart-grid { grid-template-columns: 1fr !important; }
         }
+        @media (max-width: 640px) {
+          .admin-filter-row { grid-template-columns: 1fr !important; }
+          .admin-chart-grid { grid-template-columns: 1fr !important; }
+          table { font-size: 12px; }
+          th, td { padding: 0.5rem 0.4rem; }
+        }
       `}</style>
     </div>
   );

@@ -100,3 +100,15 @@ export default function AdminRedeemsPage() {
 
 const th = { padding:'0.65rem 0.75rem', fontWeight:700 };
 const td = { padding:'0.8rem 0.75rem', color:'var(--text2)', fontSize:'13px', verticalAlign:'top' };
+
+<style>{`
+  @media (max-width: 768px) {
+    table { min-width: 600px; font-size: 12px; }
+    th, td { padding: 0.5rem 0.4rem; }
+    h2 { font-size: 20px; }
+    p { font-size: 13px; }
+  }
+  @media (max-width: 640px) {
+    table { min-width: 500px; }
+  }
+`}</style>

@@ -70,6 +70,11 @@ export default function AdminFeedbackPage() {
         @media (max-width: 768px) {
           .feedback-filter-row { grid-template-columns: 1fr !important; width: 100%; }
         }
+        @media (max-width: 640px) {
+          .feedback-filter-row { grid-template-columns: 1fr !important; }
+          h2 { font-size: 20px; }
+          p { font-size: 13px; }
+        }
       `}</style>
     </div>
   );
