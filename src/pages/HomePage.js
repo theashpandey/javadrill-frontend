@@ -35,8 +35,14 @@ const FAQS = [
   ['How does AssessArc work?', 'Choose a session, listen to Sarah AI, answer by voice, then get feedback and scores after the interview.'],
   ['Does it use my resume?', 'Yes. Your resume helps generate questions that match your actual role, tech stack, projects, and experience profile.'],
   ['Will it understand Indian English?', 'The speech recognition is configured for Indian English and works best in Chrome or Edge with a clear microphone.'],
-  ['Do questions repeat?', 'The system tracks seen bank questions and avoids repeating them in later sessions.'],
+  ['Do questions repeat?', 'The system tracks asked questions and avoids repeating them in later sessions.'],
   ['How do payments work?', 'Credits are added only after Razorpay payment verification. You pay per credit pack, not by subscription.'],
+];
+
+const SOCIAL_LINKS = [
+  { name: 'Instagram', handle: '@assessarc', href: 'https://www.instagram.com/assessarc/', label: 'IG' },
+  { name: 'YouTube', handle: '@assessarc', href: 'https://www.youtube.com/@assessarc', label: 'YT' },
+  { name: 'LinkedIn', handle: 'AssessArc', href: 'https://www.linkedin.com/company/assessarc/', label: 'IN' },
 ];
 
 const EMPTY_AUTH_FORM = { name:'', email:'', password:'' };
@@ -170,8 +176,9 @@ export default function HomePage() {
             <a href="#workflow">Workflow</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
+            <a href="#social">Social</a>
           </nav>
-          <button className="home-nav-cta" onClick={() => openAuth('signup')} disabled={signingIn || loading}>
+          <button className="home-nav-cta" onClick={() => openAuth('signin')} disabled={signingIn || loading}>
             Start Free
           </button>
         </header>
@@ -186,7 +193,7 @@ export default function HomePage() {
  </p>
               {error && <div className="home-error">{error}</div>}
               <div className="home-hero-actions">
-                <button className="home-primary-btn" onClick={() => openAuth('signup')} disabled={signingIn || loading}>
+                <button className="home-primary-btn" onClick={() => openAuth('signin')} disabled={signingIn || loading}>
                   Start free with 10 credits
                 </button>
                 <a className="home-secondary-btn" href="#features">Explore features</a>
@@ -324,6 +331,9 @@ export default function HomePage() {
             <a href="/terms">Terms</a>
             <a href="/refund">Refund</a>
             <a href="#contact">Contact</a>
+            {SOCIAL_LINKS.map(link => (
+              <a href={link.href} target="_blank" rel="noreferrer" key={link.name}>{link.name}</a>
+            ))}
           </div>
         </footer>
         {authOpen && (
