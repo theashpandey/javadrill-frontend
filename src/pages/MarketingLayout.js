@@ -24,8 +24,8 @@ export function MarketingFooter() {
         <Link to="/privacy">Privacy</Link>
         <Link to="/terms">Terms</Link>
         <Link to="/refund">Refund</Link>
-        {SOCIAL_PROFILES.map(url => (
-          <a href={url} target="_blank" rel="noreferrer" key={url}>{new URL(url).hostname.replace('www.', '')}</a>
+        {SOCIAL_PROFILES.map(profile => (
+          <a href={profile.url} target="_blank" rel="noreferrer" key={profile.name}>{profile.name}</a>
         ))}
       </div>
     </footer>

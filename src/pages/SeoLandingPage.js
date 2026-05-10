@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { SEO_PAGES, SITE_URL, SOCIAL_PROFILES } from '../data/marketingContent';
+import { SEO_PAGES, SITE_URL, SOCIAL_PROFILE_URLS } from '../data/marketingContent';
 import { MarketingFooter, MarketingNav } from './MarketingLayout';
 
 export default function SeoLandingPage({ path }) {
@@ -26,7 +26,7 @@ export default function SeoLandingPage({ path }) {
         '@type': 'Organization',
         name: 'AssessArc',
         url: SITE_URL,
-        sameAs: SOCIAL_PROFILES,
+        sameAs: SOCIAL_PROFILE_URLS,
       },
     },
     {

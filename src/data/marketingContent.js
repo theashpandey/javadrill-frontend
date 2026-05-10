@@ -1,10 +1,12 @@
 export const SITE_URL = 'https://www.assessarc.com';
 
 export const SOCIAL_PROFILES = [
-  'https://www.instagram.com/assessarc/',
-  'https://www.youtube.com/@assessarc',
-  'https://www.linkedin.com/company/assessarc/',
+  { name: 'Instagram', url: 'https://www.instagram.com/assessarc/' },
+  { name: 'YouTube', url: 'https://www.youtube.com/@assessarc' },
+  { name: 'LinkedIn', url: 'https://www.linkedin.com/company/assessarc/' },
 ];
+
+export const SOCIAL_PROFILE_URLS = SOCIAL_PROFILES.map(profile => profile.url);
 
 export const SEO_PAGES = [
   {

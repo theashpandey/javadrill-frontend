@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { useApp } from '../context/AppContext';
 import { Spinner } from '../components/UI';
 import BrandLogo from '../components/BrandLogo';
-import { SITE_URL, SOCIAL_PROFILES } from '../data/marketingContent';
+import { SITE_URL, SOCIAL_PROFILE_URLS } from '../data/marketingContent';
 
 const API = process.env.REACT_APP_API_URL || 'https://assessarcapp.onrender.com';
 const REFERRAL_STORAGE_KEY = 'assessarc_referral_code';
@@ -149,7 +149,7 @@ export default function HomePage() {
         '@type': 'Organization',
         name: 'AssessArc',
         url: SITE_URL,
-        sameAs: SOCIAL_PROFILES,
+        sameAs: SOCIAL_PROFILE_URLS,
       },
       {
         '@type': 'WebSite',
