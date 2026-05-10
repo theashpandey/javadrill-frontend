@@ -18,7 +18,7 @@ import {
 
 const firebaseConfig = {
   apiKey: "AIzaSyCv33WveF_ILY1on5C966BeGkQUf3zVjCE",
-  authDomain: "assessarc.com",
+  authDomain: "assessarc-6cd04.firebaseapp.com",
   projectId: "assessarc-6cd04",
   storageBucket: "assessarc-6cd04.firebasestorage.app",
   messagingSenderId: "869826255999",
