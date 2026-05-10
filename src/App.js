@@ -17,6 +17,8 @@ import WalletPage    from './pages/WalletPage';
 import PrivacyPage   from './pages/PrivacyPage';
 import TermsPage     from './pages/TermsPage';
 import RefundPage    from './pages/RefundPage';
+import SeoLandingPage from './pages/SeoLandingPage';
+import { SEO_PAGES } from './data/marketingContent';
 import { Spinner } from './components/UI';
 import BrandLogo from './components/BrandLogo';
 
@@ -84,6 +86,9 @@ function AppRoutes() {
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms"   element={<TermsPage />} />
       <Route path="/refund"  element={<RefundPage />} />
+      {SEO_PAGES.map(page => (
+        <Route path={page.path} element={<SeoLandingPage path={page.path} />} key={page.path} />
+      ))}
       <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="interview" replace />} />
         <Route path="interview"   element={<InterviewPage />} />

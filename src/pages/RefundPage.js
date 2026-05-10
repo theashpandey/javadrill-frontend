@@ -18,7 +18,7 @@ export default function RefundPage() {
       <Helmet>
         <title>Refund Policy | AssessArc</title>
         <meta name="description" content="Read AssessArc's refund policy for unused credits, partial refunds, technical issues, and signup bonus credits." />
-        <link rel="canonical" href="https://assessarc.app/refund" />
+        <link rel="canonical" href="https://www.assessarc.com/refund" />
       </Helmet>
       <div style={{ maxWidth:760, margin:'0 auto' }}>
         <Link to="/" style={{ color:'#818cf8', fontSize:'14px', display:'inline-flex', alignItems:'center', gap:'0.4rem', marginBottom:'2rem' }}>← Back to Home</Link>

@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { useApp } from '../context/AppContext';
 import { Spinner } from '../components/UI';
 import BrandLogo from '../components/BrandLogo';
+import { SITE_URL, SOCIAL_PROFILES } from '../data/marketingContent';
 
 const API = process.env.REACT_APP_API_URL || 'https://assessarcapp.onrender.com';
 const REFERRAL_STORAGE_KEY = 'assessarc_referral_code';
@@ -63,6 +64,7 @@ export default function HomePage() {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
     if (ref) localStorage.setItem(REFERRAL_STORAGE_KEY, ref.trim().toUpperCase());
+    if (params.get('auth') === 'signin') openAuth('signin');
   }, []);
 
   const openAuth = (mode = 'signin') => {
@@ -142,27 +144,53 @@ export default function HomePage() {
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'AssessArc',
-    applicationCategory: 'EducationalApplication',
-    operatingSystem: 'Web',
-    description: 'AI-powered role-based mock interview platform with voice interviews, resume-tailored questions, and performance analytics.',
-    offers: { '@type': 'Offer', price: '10', priceCurrency: 'INR' },
+    '@graph': [
+      {
+        '@type': 'Organization',
+        name: 'AssessArc',
+        url: SITE_URL,
+        sameAs: SOCIAL_PROFILES,
+      },
+      {
+        '@type': 'WebSite',
+        name: 'AssessArc',
+        url: SITE_URL,
+      },
+      {
+        '@type': 'SoftwareApplication',
+        name: 'AssessArc',
+        url: SITE_URL,
+        applicationCategory: 'EducationalApplication',
+        operatingSystem: 'Web',
+        description: 'AI-powered mock interview platform with voice interviews, resume-based questions, instant feedback, scoring, and performance analytics.',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR', description: '10 free credits on signup' },
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: FAQS.map(([question, answer]) => ({
+          '@type': 'Question',
+          name: question,
+          acceptedAnswer: { '@type': 'Answer', text: answer },
+        })),
+      },
+    ],
   };
 
   return (
     <>
       <Helmet>
-        <title>AssessArc | AI Mock Interviews for Engineers, Data, HR and Managers</title>
-        <meta name="description" content="Practice role-based interviews with Sarah AI. Voice mock interviews for Java, Python, React, full stack, backend, data science, HR, architect, manager and more." />
-        <meta name="keywords" content="AI mock interview, Java interview practice, Python mock interview, React interview practice, data science interview, HR interview practice, voice mock interview India" />
-        <meta property="og:title" content="AssessArc | AI Role-Based Mock Interviews" />
-        <meta property="og:description" content="Practice real interviews by voice with resume-tailored questions and dynamic performance analytics." />
+        <title>AI Mock Interview Practice Online for Java, Python, React, Data and HR | AssessArc</title>
+        <meta name="description" content="Practice AI mock interviews online with Sarah AI. Get voice-based interviews, resume-based questions, instant feedback, scores, and analytics for Java, Python, React, data science, HR, and manager roles." />
+        <meta name="keywords" content="AI mock interview, mock interview practice, AI interview practice, Java interview practice, Python mock interview, React interview practice, data science mock interview, HR interview practice, resume based interview questions, voice mock interview" />
+        <meta property="og:title" content="AI Mock Interview Practice Online | AssessArc" />
+        <meta property="og:description" content="Practice real interviews by voice with resume-based questions, instant feedback, scoring, and performance analytics." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://www.assessarc.com" />
+        <meta property="og:url" content={SITE_URL} />
         <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="AI Mock Interview Practice Online | AssessArc" />
+        <meta name="twitter:description" content="Practice AI mock interviews by voice with resume-based questions, instant feedback, and performance scores." />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://www.assessarc.com" />
+        <link rel="canonical" href={SITE_URL} />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 
@@ -176,7 +204,6 @@ export default function HomePage() {
             <a href="#workflow">Workflow</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
-            <a href="#social">Social</a>
           </nav>
           <button className="home-nav-cta" onClick={() => openAuth('signin')} disabled={signingIn || loading}>
             Start Free

@@ -19,7 +19,7 @@ export default function TermsPage() {
       <Helmet>
         <title>Terms of Service | AssessArc</title>
         <meta name="description" content="Read the AssessArc terms for accounts, credits, payments, acceptable use, educational interview practice, and limitations." />
-        <link rel="canonical" href="https://assessarc.app/terms" />
+        <link rel="canonical" href="https://www.assessarc.com/terms" />
       </Helmet>
       <div style={{ maxWidth:760, margin:'0 auto' }}>
         <Link to="/" style={{ color:'#818cf8', fontSize:'14px', display:'inline-flex', alignItems:'center', gap:'0.4rem', marginBottom:'2rem' }}>← Back to Home</Link>
