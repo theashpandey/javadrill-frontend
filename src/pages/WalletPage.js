@@ -4,11 +4,11 @@ import { apiCall } from '../utils/api';
 import { Card, Button, Spinner } from '../components/UI';
 
 const PACKS = [
-  { credits:10,  price:10,  label:'Single',  popular:false, bonus:0,  desc:'1 session' },
-  { credits:35,  price:29,  label:'Starter', popular:false, bonus:5,  desc:'3-7 sessions' },
-  { credits:70,  price:59,  label:'Pro',     popular:true,  bonus:10, desc:'7-14 sessions' },
-  { credits:115, price:99,  label:'Elite',   popular:false, bonus:15, desc:'11-23 sessions' },
-  { credits:220, price:199, label:'Titan',   popular:false, bonus:20, desc:'22-44 sessions' },
+  { credits:10,  price:10,  label:'Single',  popular:false, bonus:0,  desc:'1 quick session' },
+  { credits:35,  price:29,  label:'Starter', popular:false, bonus:5,  desc:'2-3 sessions' },
+  { credits:70,  price:59,  label:'Pro',     popular:true,  bonus:10, desc:'4-7 sessions' },
+  { credits:115, price:99,  label:'Elite',   popular:false, bonus:15, desc:'7-11 sessions' },
+  { credits:220, price:199, label:'Titan',   popular:false, bonus:20, desc:'14-22 sessions' },
 ];
 
 export default function WalletPage() {
@@ -132,7 +132,7 @@ export default function WalletPage() {
     }
   };
 
-  const creditColor = wallet < 5 ? '#ef4444' : wallet < 20 ? '#f59e0b' : '#10b981';
+  const creditColor = wallet < 10 ? '#ef4444' : wallet < 30 ? '#f59e0b' : '#10b981';
   const purchasedCredits = walletDetails?.purchasedCredits ?? wallet;
   const bonusCredits = walletDetails?.bonusCredits ?? 0;
   const redeemableBalance = walletDetails?.redeemableBalance ?? purchasedCredits;
@@ -235,7 +235,7 @@ export default function WalletPage() {
 
       <div>
         <h2 style={{ fontFamily:'var(--font-display)', fontSize:'24px', fontWeight:800, marginBottom:'0.4rem' }}>Wallet</h2>
-        <p style={{ color:'var(--text2)', fontSize:'14px' }}>Credits deducted per session. 30 min = 5 credits. 60 min = 10 credits. Never expire.</p>
+        <p style={{ color:'var(--text2)', fontSize:'14px' }}>Credits deducted per session. 30 min = 10 credits. 60 min = 15 credits. Never expire.</p>
       </div>
 
       <div className="wallet-page-grid">
@@ -260,14 +260,14 @@ export default function WalletPage() {
               <span style={{ fontSize:'20px', color:'var(--text3)', marginLeft:'0.5rem', fontWeight:400 }}>credits</span>
             </div>
             <div style={{ fontSize:'13px', color:'var(--text2)' }}>
-              About {Math.floor(wallet / 10)} full sessions or {Math.floor(wallet / 5)} quick sessions.
+              About {Math.floor(wallet / 15)} full sessions or {Math.floor(wallet / 10)} quick sessions.
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'0.65rem', marginTop:'1rem' }}>
               <MiniStat label="Purchased" value={purchasedCredits} />
               <MiniStat label="Bonus" value={bonusCredits} />
               <MiniStat label="Redeemable" value={redeemableBalance} />
             </div>
-            {wallet < 5 && (
+            {wallet < 10 && (
               <div style={{ marginTop:'0.85rem', padding:'0.6rem 0.85rem', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:'8px', fontSize:'12px', color:'#ef4444' }}>
                 Low balance. Top up to continue practising.
               </div>
@@ -342,8 +342,8 @@ export default function WalletPage() {
             <div style={{ fontSize:'12px', fontWeight:600, color:'var(--text2)', marginBottom:'0.75rem', textTransform:'uppercase', letterSpacing:'1px' }}>How Credits Work</div>
             <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem' }}>
               {[
-                ['30 min session','5 credits','Rs 5'],
-                ['60 min session','10 credits','Rs 10'],
+                ['30 min session','10 credits','Rs 10'],
+                ['60 min session','15 credits','Rs 15'],
               ].map(([label, cr, price]) => (
                 <div key={label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'0.75rem', fontSize:'13px', padding:'0.5rem 0', borderBottom:'1px solid var(--border2)' }}>
                   <span style={{ color:'var(--text2)' }}>{label}</span>

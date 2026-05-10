@@ -24,11 +24,11 @@ const STEPS = [
 ];
 
 const PLANS = [
-  { name:'Free', price:'₹0', desc:'10 credits on signup', tag:'Try it', features:['1 full 60-min session','Resume upload','Interview report'] },
-  { name:'Starter', price:'₹29', desc:'35 credits', tag:'+5 bonus', features:['3-7 sessions','History access','AI feedback'] },
-  { name:'Pro', price:'₹59', desc:'70 credits', tag:'+10 bonus', featured:true, features:['7-14 sessions','Deep analysis','Category trends'] },
-  { name:'Elite', price:'₹99', desc:'115 credits', tag:'+15 bonus', features:['11-23 sessions','Full dashboard','Long-term tracking'] },
-  { name:'Titan', price:'₹199', desc:'220 credits', tag:'+20 bonus', features:['22-44 sessions','Long-term tracking','Best value'] },
+  { name:'Free', price:'₹0', desc:'10 credits on signup', tag:'Try it', features:['1 quick 30-min session','Resume upload','Interview report'] },
+  { name:'Starter', price:'₹29', desc:'35 credits', tag:'+5 bonus', features:['2-3 sessions','History access','AI feedback'] },
+  { name:'Pro', price:'₹59', desc:'70 credits', tag:'+10 bonus', featured:true, features:['4-7 sessions','Deep analysis','Category trends'] },
+  { name:'Elite', price:'₹99', desc:'115 credits', tag:'+15 bonus', features:['7-11 sessions','Full dashboard','Long-term tracking'] },
+  { name:'Titan', price:'₹199', desc:'220 credits', tag:'+20 bonus', features:['14-22 sessions','Long-term tracking','Best value'] },
 ];
 
 const FAQS = [
@@ -141,7 +141,7 @@ export default function HomePage() {
     applicationCategory: 'EducationalApplication',
     operatingSystem: 'Web',
     description: 'AI-powered role-based mock interview platform with voice interviews, resume-tailored questions, and performance analytics.',
-    offers: { '@type': 'Offer', price: '5', priceCurrency: 'INR' },
+    offers: { '@type': 'Offer', price: '10', priceCurrency: 'INR' },
   };
 
   return (
@@ -263,7 +263,7 @@ export default function HomePage() {
             <div className="home-section-heading">
               <span>Pricing</span>
               <h2>Simple credits. No monthly lock-in.</h2>
-              <p>30 minute sessions use 5 credits. 60 minute sessions use 10 credits.</p>
+              <p>30 minute sessions use 10 credits. 60 minute sessions use 15 credits.</p>
             </div>
             <div className="home-pricing-grid">
               {PLANS.map(plan => (

@@ -13,7 +13,7 @@ import {
 } from '../utils/gemini';
 import { Button, Card, Spinner, Badge, Waveform, ProgressBar, ScoreRing } from '../components/UI';
 
-const PRICE      = { 30: 5, 60: 10 };
+const PRICE      = { 30: 10, 60: 15 };
 const SCREENS    = { HOME: 'home', INTERVIEW: 'interview', REPORT: 'report' };
 const INITIAL_SILENT_SEC = 14;
 const ANSWER_PAUSE_SEC = 10;
@@ -1167,8 +1167,8 @@ function HomeScreen({
 
       {/* Duration cards */}
       {[
-        { mins:30, price:5,  icon:'⚡', title:'30 Min Session', desc:'Focused practice · ~6–10 questions · ₹5 per session' },
-        { mins:60, price:10, icon:'🎯', title:'60 Min Full Mock', desc:'Complete interview · ~14–20 questions · ₹10 per session' },
+        { mins:30, price:10, icon:'⚡', title:'30 Min Session', desc:'Focused practice · Unlimited questions · ₹10 per session' },
+        { mins:60, price:15, icon:'🎯', title:'60 Min Full Mock', desc:'Complete interview · Unlimited questions · ₹15 per session' },
       ].map(opt => (
         <div key={opt.mins} onClick={() => setSelectedDur(opt.mins)} style={{
           padding:'1.4rem', borderRadius:'16px', cursor:'pointer', transition:'all 0.25s',
