@@ -106,34 +106,34 @@ function AppRoutes() {
 }
 
 export default function App() {
-  // useEffect(() => {
-  //   const blockContextMenu = (event) => {
-  //     event.preventDefault();
-  //   };
+  useEffect(() => {
+    const blockContextMenu = (event) => {
+      event.preventDefault();
+    };
 
-  //   const blockInspectShortcuts = (event) => {
-  //     const key = event.key?.toLowerCase();
-  //     const blocked =
-  //       event.key === 'F12' ||
-  //       (event.ctrlKey && event.shiftKey && ['i', 'j', 'c'].includes(key)) ||
-  //       (event.metaKey && event.altKey && ['i', 'j', 'c'].includes(key)) ||
-  //       (event.ctrlKey && key === 'u') ||
-  //       (event.metaKey && key === 'u');
+    const blockInspectShortcuts = (event) => {
+      const key = event.key?.toLowerCase();
+      const blocked =
+        event.key === 'F12' ||
+        (event.ctrlKey && event.shiftKey && ['i', 'j', 'c'].includes(key)) ||
+        (event.metaKey && event.altKey && ['i', 'j', 'c'].includes(key)) ||
+        (event.ctrlKey && key === 'u') ||
+        (event.metaKey && key === 'u');
 
-  //     if (blocked) {
-  //       event.preventDefault();
-  //       event.stopPropagation();
-  //     }
-  //   };
+      if (blocked) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
 
-  //   document.addEventListener('contextmenu', blockContextMenu);
-  //   document.addEventListener('keydown', blockInspectShortcuts, true);
+    document.addEventListener('contextmenu', blockContextMenu);
+    document.addEventListener('keydown', blockInspectShortcuts, true);
 
-  //   return () => {
-  //     document.removeEventListener('contextmenu', blockContextMenu);
-  //     document.removeEventListener('keydown', blockInspectShortcuts, true);
-  //   };
-  // }, []);
+    return () => {
+      document.removeEventListener('contextmenu', blockContextMenu);
+      document.removeEventListener('keydown', blockInspectShortcuts, true);
+    };
+  }, []);
 
   return (
     <HelmetProvider>
