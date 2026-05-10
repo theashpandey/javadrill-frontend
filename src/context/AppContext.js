@@ -11,6 +11,7 @@ import {
 import { apiCall } from '../utils/api';
 
 const AppContext = createContext(null);
+const REFERRAL_STORAGE_KEY = 'assessarc_referral_code';
 
 export function AppProvider({ children }) {
   const [user, setUser]       = useState(null);
@@ -26,12 +27,12 @@ export function AppProvider({ children }) {
   const captureReferralCodeFromUrl = () => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
-    if (ref) localStorage.setItem('javadrill_referral_code', ref.trim().toUpperCase());
+    if (ref) localStorage.setItem(REFERRAL_STORAGE_KEY, ref.trim().toUpperCase());
   };
 
   const getPendingReferralCode = () => {
     captureReferralCodeFromUrl();
-    const code = localStorage.getItem('javadrill_referral_code');
+    const code = localStorage.getItem(REFERRAL_STORAGE_KEY);
     return code ? code.trim().toUpperCase() : '';
   };
 
@@ -79,7 +80,9 @@ export function AppProvider({ children }) {
           method: 'POST',
           body: JSON.stringify({ referralCode, name: userData.name }),
         });
-        if (profile?.isNewUser) localStorage.removeItem('javadrill_referral_code');
+        if (profile?.isNewUser) {
+          localStorage.removeItem(REFERRAL_STORAGE_KEY);
+        }
         applyProfile(userData, profile);
       } catch (error) {
         console.error('Session restore failed:', error);
@@ -109,7 +112,9 @@ export function AppProvider({ children }) {
         method: 'POST',
         body: JSON.stringify({ referralCode, name: userData.name }),
       });
-      if (profile?.isNewUser) localStorage.removeItem('javadrill_referral_code');
+      if (profile?.isNewUser) {
+          localStorage.removeItem(REFERRAL_STORAGE_KEY);
+        }
       applyProfile(userData, profile);
     } catch (error) {
       console.error('Sign in failed:', error);
@@ -130,7 +135,9 @@ export function AppProvider({ children }) {
         method: 'POST',
         body: JSON.stringify({ referralCode, name: userData.name }),
       });
-      if (profile?.isNewUser) localStorage.removeItem('javadrill_referral_code');
+      if (profile?.isNewUser) {
+          localStorage.removeItem(REFERRAL_STORAGE_KEY);
+        }
       applyProfile(userData, profile);
     } catch (error) {
       console.error('Email authentication failed:', error);

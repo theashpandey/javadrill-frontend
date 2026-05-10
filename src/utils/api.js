@@ -1,6 +1,6 @@
 import { getIdToken } from './firebase';
 
-export const API = process.env.REACT_APP_API_URL || 'https://javadrill.onrender.com';
+export const API = process.env.REACT_APP_API_URL || 'https://assessarc.onrender.com';
 
 function sanitizeErrorMessage(message) {
   if (!message) return message;

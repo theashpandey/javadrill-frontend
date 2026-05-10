@@ -35,7 +35,7 @@ export default function FeedbackWidget({ onClose }) {
           <div style={{ textAlign:'center', padding:'1rem 0' }}>
             <div style={{ fontSize:'48px', marginBottom:'0.75rem' }}>🙏</div>
             <h3 style={{ fontFamily:'var(--font-display)', fontSize:'20px', fontWeight:700, marginBottom:'0.5rem' }}>Thank you!</h3>
-            <p style={{ color:'var(--text2)', fontSize:'14px', marginBottom:'1.5rem' }}>Your feedback means a lot and helps us improve JavaDrill.</p>
+            <p style={{ color:'var(--text2)', fontSize:'14px', marginBottom:'1.5rem' }}>Your feedback means a lot and helps us improve AssessArc.</p>
             <Button onClick={onClose} variant="primary" style={{ width:'100%' }}>Close</Button>
           </div>
         ) : (

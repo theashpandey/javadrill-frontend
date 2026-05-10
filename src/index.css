@@ -1,4 +1,4 @@
-/* ── JavaDrill Global Styles ── */
+/* ── AssessArc Global Styles ── */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
@@ -177,7 +177,20 @@ body::before {
   font-weight: 800;
   letter-spacing: 0;
 }
-.home-brand span span { color: var(--primary-light); }
+.home-brand span span,
+.brand-logo-text span { color: var(--primary-light); }
+.brand-logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--text);
+}
+.brand-logo-mark {
+  border-radius: 9px;
+  background: linear-gradient(145deg, #171727, #0b0b13);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 0 18px rgba(249,115,22,0.16), inset 0 0 16px rgba(255,255,255,0.03);
+}
 .home-logo {
   width: 34px;
   height: 34px;
@@ -244,7 +257,7 @@ body::before {
 .home-hero h1 {
   margin-top: 1rem;
   font-family: var(--font-display);
-  font-size: clamp(56px, 9vw, 116px);
+  font-size: clamp(56px, 9vw, 100px);
   line-height: 0.9;
   letter-spacing: 0;
 }

@@ -18,6 +18,7 @@ import PrivacyPage   from './pages/PrivacyPage';
 import TermsPage     from './pages/TermsPage';
 import RefundPage    from './pages/RefundPage';
 import { Spinner } from './components/UI';
+import BrandLogo from './components/BrandLogo';
 
 const ADMIN_EMAILS = (process.env.REACT_APP_ADMIN_EMAILS || 'ashish9145826@gmail.com')
   .split(',')
@@ -45,20 +46,8 @@ function AppLoadingScreen() {
         gap:'1rem',
         textAlign:'center',
       }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'0.65rem', marginBottom:'0.25rem' }}>
-          <div style={{
-            width:38,
-            height:38,
-            borderRadius:'10px',
-            background:'linear-gradient(135deg,#6366f1,#a78bfa)',
-            display:'flex',
-            alignItems:'center',
-            justifyContent:'center',
-            boxShadow:'0 0 24px rgba(99,102,241,0.35)',
-          }}>⚡</div>
-          <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'20px' }}>
-            Java<span style={{ color:'#818cf8' }}>Drill</span>
-          </span>
+        <div style={{ marginBottom:'0.25rem' }}>
+          <BrandLogo size={38} iconSize={28} style={{ fontSize:'20px' }} />
         </div>
         <Spinner size={36} />
         <div>

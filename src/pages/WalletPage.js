@@ -67,7 +67,7 @@ export default function WalletPage() {
         amount: order.amount,
         currency: order.currency || 'INR',
         order_id: order.orderId,
-        name: 'JavaDrill',
+        name: 'AssessArc',
         description: `${selected.credits} Interview Credits`,
         theme: { color:'#6366f1' },
         prefill: {},

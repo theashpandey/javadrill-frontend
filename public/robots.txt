@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://javadrill.app/sitemap.xml
+Sitemap: https://assessarc.app/sitemap.xml

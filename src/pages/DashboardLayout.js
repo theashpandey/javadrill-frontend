@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import FeedbackWidget from '../components/FeedbackWidget';
+import BrandLogo from '../components/BrandLogo';
 
 const NAV = [
   { path:'interview',   icon:'🎤', label:'Interview',   desc:'Start a mock session' },
@@ -36,10 +37,7 @@ export default function DashboardLayout({
       {/* Logo */}
       <div style={{ padding:'1.35rem 1.25rem', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'0.6rem' }}>
-          <div style={{ width:34, height:34, borderRadius:'9px', background:'linear-gradient(135deg,#6366f1,#a78bfa)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px', boxShadow:'0 0 18px rgba(99,102,241,0.4)' }}>⚡</div>
-          <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'18px', letterSpacing:'-0.3px' }}>
-            Java<span style={{ color:'#818cf8' }}>Drill</span>
-          </span>
+          <BrandLogo size={34} iconSize={26} style={{ fontSize:'18px' }} />
         </div>
       </div>
 
@@ -134,10 +132,8 @@ export default function DashboardLayout({
 
       {/* Mobile header */}
       <div className="mobile-header" style={{ position:'fixed', top:0, left:0, right:0, zIndex:60, height:54, background:'rgba(8,8,14,0.98)', backdropFilter:'blur(24px)', borderBottom:'1px solid rgba(255,255,255,0.05)', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 1rem' }}>
-        <div><div className="home-logo">⚡</div>
-          
-        <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'17px' , marginLeft:'10px'}}>Java<span style={{ color:'#818cf8' }}>Drill</span></span>
-       </div> <div style={{ display:'flex', alignItems:'center', gap:'0.65rem' }}>
+        <BrandLogo size={34} iconSize={26} style={{ fontSize:'17px' }} />
+        <div style={{ display:'flex', alignItems:'center', gap:'0.65rem' }}>
           {showWallet
             ? <span style={{ fontFamily:'var(--font-mono)', fontSize:'13px', color:creditColor, fontWeight:700 }}>{wallet}cr</span>
             : badgeLabel && <span style={{ fontFamily:'var(--font-mono)', fontSize:'11px', color:'#818cf8', fontWeight:700 }}>{badgeLabel}</span>}

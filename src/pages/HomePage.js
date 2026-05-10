@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useApp } from '../context/AppContext';
 import { Spinner } from '../components/UI';
+import BrandLogo from '../components/BrandLogo';
 
-const API = process.env.REACT_APP_API_URL || 'https://javadrill.onrender.com';
+const API = process.env.REACT_APP_API_URL || 'https://assessarc.onrender.com';
+const REFERRAL_STORAGE_KEY = 'assessarc_referral_code';
 
 const FEATURES = [
   { icon:'🎤', title:'Live Voice Interview', desc:'Sarah asks questions out loud, listens to your answer, and keeps the flow moving like a real interviewer.', stat:'Voice-first' },
@@ -30,7 +32,7 @@ const PLANS = [
 ];
 
 const FAQS = [
-  ['How does JavaDrill work?', 'Choose a session, listen to Sarah AI, answer by voice, then get feedback and scores after the interview.'],
+  ['How does AssessArc work?', 'Choose a session, listen to Sarah AI, answer by voice, then get feedback and scores after the interview.'],
   ['Does it use my resume?', 'Yes. Your resume helps generate questions that match your actual role, tech stack, projects, and experience profile.'],
   ['Will it understand Indian English?', 'The speech recognition is configured for Indian English and works best in Chrome or Edge with a clear microphone.'],
   ['Do questions repeat?', 'The system tracks seen bank questions and avoids repeating them in later sessions.'],
@@ -54,7 +56,7 @@ export default function HomePage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
-    if (ref) localStorage.setItem('javadrill_referral_code', ref.trim().toUpperCase());
+    if (ref) localStorage.setItem(REFERRAL_STORAGE_KEY, ref.trim().toUpperCase());
   }, []);
 
   const openAuth = (mode = 'signin') => {
@@ -135,7 +137,7 @@ export default function HomePage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'JavaDrill',
+    name: 'AssessArc',
     applicationCategory: 'EducationalApplication',
     operatingSystem: 'Web',
     description: 'AI-powered role-based mock interview platform with voice interviews, resume-tailored questions, and performance analytics.',
@@ -145,26 +147,23 @@ export default function HomePage() {
   return (
     <>
       <Helmet>
-        <title>JavaDrill | AI Mock Interviews for Engineers, Data, HR and Managers</title>
+        <title>AssessArc | AI Mock Interviews for Engineers, Data, HR and Managers</title>
         <meta name="description" content="Practice role-based interviews with Sarah AI. Voice mock interviews for Java, Python, React, full stack, backend, data science, HR, architect, manager and more." />
         <meta name="keywords" content="AI mock interview, Java interview practice, Python mock interview, React interview practice, data science interview, HR interview practice, voice mock interview India" />
-        <meta property="og:title" content="JavaDrill | AI Role-Based Mock Interviews" />
+        <meta property="og:title" content="AssessArc | AI Role-Based Mock Interviews" />
         <meta property="og:description" content="Practice real interviews by voice with resume-tailored questions and dynamic performance analytics." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://javadrill.app" />
+        <meta property="og:url" content="https://assessarc.app" />
         <meta name="twitter:card" content="summary" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://javadrill.app" />
+        <link rel="canonical" href="https://assessarc.app" />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 
       <div className="home-page">
         <header className="home-nav">
-          <a href="/" className="home-brand" aria-label="JavaDrill home">
-            <div><div className="home-logo">⚡</div>
-          
-        <span style={{ fontFamily:'var(--font-display)', fontWeight:800, fontSize:'17px' , marginLeft:'10px'}}>Java<span style={{ color:'#818cf8' }}>Drill</span></span>
-       </div>
+          <a href="/" className="home-brand" aria-label="AssessArc home">
+            <BrandLogo size={34} iconSize={26} style={{ fontSize:'20px' }} />
           </a>
           <nav className="home-nav-links" aria-label="Primary navigation">
             <a href="#features">Features</a>
@@ -181,7 +180,7 @@ export default function HomePage() {
           <section className="home-hero">
             <div className="home-hero-copy">
               <div className="home-eyebrow">AI-powered role-based interview practice</div>
-              <h1>JavaDrill</h1>
+              <h1>AssessArc</h1>
               <p className="home-hero-subtitle">
                Practice real interview questions for engineering, data, HR, architecture, and manager roles, then get instant feedback on clarity, depth, and confidence — just like a real interviewer.
  </p>
@@ -199,7 +198,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="home-product-preview" aria-label="JavaDrill interview product preview">
+            <div className="home-product-preview" aria-label="AssessArc interview product preview">
               <div className="preview-topbar">
                 <span></span><span></span><span></span>
                 <strong>Interview Room</strong>
@@ -318,8 +317,7 @@ export default function HomePage() {
 
         <footer className="home-footer">
           <div className="home-brand">
-            <span className="home-logo">⚡</span>
-            <span>Java<span>Drill</span></span>
+            <BrandLogo size={34} iconSize={26} />
           </div>
           <div>
             <a href="/privacy">Privacy</a>
@@ -334,7 +332,7 @@ export default function HomePage() {
             <div className="auth-modal">
               <button className="auth-close" aria-label="Close" onClick={closeAuth}>x</button>
               <div className="auth-modal-brand">
-                <span className="home-logo">⚡</span>
+                <BrandLogo size={42} iconSize={30} label={false} />
                 <div>
                   <b id="auth-title">{authMode === 'signup' ? 'Create your account' : 'Welcome back'}</b>
                   <p>{authMode === 'signup' ? 'Start with free interview credits.' : 'Continue your practice dashboard.'}</p>

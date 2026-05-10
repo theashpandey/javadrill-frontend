@@ -118,7 +118,7 @@ export default function InterviewPage() {
 
   const codingDraftKey = useCallback((question) => {
     if (!interviewIdRef.current || !question?.id) return '';
-    return `javadrill_coding_draft_${interviewIdRef.current}_${question.id}`;
+    return `assessarc_coding_draft_${interviewIdRef.current}_${question.id}`;
   }, []);
 
   useEffect(() => {
