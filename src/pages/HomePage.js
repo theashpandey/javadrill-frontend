@@ -153,10 +153,10 @@ export default function HomePage() {
         <meta property="og:title" content="AssessArc | AI Role-Based Mock Interviews" />
         <meta property="og:description" content="Practice real interviews by voice with resume-tailored questions and dynamic performance analytics." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://assessarc.app" />
+        <meta property="og:url" content="https://www.assessarc.com" />
         <meta name="twitter:card" content="summary" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://assessarc.app" />
+        <link rel="canonical" href="https://www.assessarc.com" />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 
