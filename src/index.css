@@ -178,7 +178,7 @@ body::before {
   letter-spacing: 0;
 }
 .home-brand span span,
-.brand-logo-text span { color: var(--primary-light); }
+.brand-logo-text span {}
 .brand-logo {
   font-family: var(--font-display);
   font-weight: 800;

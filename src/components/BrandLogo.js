@@ -30,7 +30,7 @@ export default function BrandLogo({ size = 34, iconSize = 26, label = true, clas
           <circle cx="22" cy="8" r="3" fill={`url(#${gradientId})`} />
         </svg>
       </span>
-      {label && <span className="brand-logo-text">Assess<span>Arc</span></span>}
+      {label && <span className="brand-logo-text">Assess<span style={{ color:'#818cf8' }}>Arc</span></span>}
     </span>
   );
 }
