@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import { Spinner } from '../components/UI';
 import BrandLogo from '../components/BrandLogo';
 
-const API = process.env.REACT_APP_API_URL || 'https://assessarc.onrender.com';
+const API = process.env.REACT_APP_API_URL || 'https://assessarcapp.onrender.com';
 const REFERRAL_STORAGE_KEY = 'assessarc_referral_code';
 
 const FEATURES = [
