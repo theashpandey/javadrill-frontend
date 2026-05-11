@@ -5,7 +5,7 @@ export function Button({ children, variant = 'primary', size = 'md', disabled, o
   const base = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
     border: 'none', borderRadius: '10px', fontFamily: 'var(--font-body)',
-    fontWeight: 500, cursor: disabled ? 'not-allowed' : 'pointer',
+    fontWeight: 650, letterSpacing: 0, lineHeight: 1.2, cursor: disabled ? 'not-allowed' : 'pointer',
     transition: 'all 0.2s', opacity: disabled ? 0.4 : 1,
     whiteSpace: 'normal', textAlign: 'center',
   };
@@ -59,7 +59,7 @@ export function Badge({ children, color = '#6366f1' }) {
   return (
     <span style={{
       padding: '2px 8px', borderRadius: '6px', fontSize: '11px',
-      fontFamily: 'var(--font-mono)', fontWeight: 500,
+      fontFamily: 'var(--font-body)', fontWeight: 700, letterSpacing: '0.01em',
       background: color + '22', color, border: `1px solid ${color}44`,
     }}>
       {children}
