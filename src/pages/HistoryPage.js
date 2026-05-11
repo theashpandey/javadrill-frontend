@@ -133,6 +133,110 @@ export default function HistoryPage() {
   );
 }
 
+function buildCodingPrompt(question) {
+  const codingData = question?.codingData || {};
+  const rawQuestion = String(question?.question || '').trim();
+  const rawDescription = String(codingData.description || '').trim();
+  const rawExpected = String(codingData.expectedOutput || '').trim();
+  const rawTestCases = Array.isArray(codingData.testCases) ? codingData.testCases : [];
+  const combined = [rawDescription, rawQuestion].filter(Boolean).join('\n\n');
+
+  const pickSection = (labels, stopLabels) => {
+    const labelPattern = labels.join('|');
+    const stopPattern = stopLabels.join('|');
+    const match = combined.match(new RegExp(`(?:^|\\n)\\s*(?:${labelPattern})\\s*:?\\s*([\\s\\S]*?)(?=\\n\\s*(?:${stopPattern})\\s*:?|$)`, 'i'));
+    return match ? match[1].trim() : '';
+  };
+
+  const expectedFromText = pickSection(['expected\\s*output', 'output'], ['test\\s*cases?', 'examples?', 'constraints?', 'problem\\s*description', 'description']);
+  const descriptionFromText = pickSection(['problem\\s*description', 'description', 'statement'], ['expected\\s*output', 'output', 'test\\s*cases?', 'examples?', 'constraints?']);
+  const testsFromText = pickSection(['test\\s*cases?', 'examples?'], ['expected\\s*output', 'constraints?', 'problem\\s*description', 'description']);
+  const title = rawQuestion
+    .replace(/(?:problem\s*description|expected\s*output|test\s*cases?|examples?)\s*:.*$/is, '')
+    .trim();
+
+  return {
+    title: title || rawQuestion.split('\n')[0] || 'Coding Problem',
+    description: rawDescription || descriptionFromText || rawQuestion,
+    expectedOutput: rawExpected || expectedFromText,
+    testCases: rawTestCases.filter(tc => tc && (tc.input || tc.expectedOutput)),
+    testsFromText,
+  };
+}
+
+function CodeBlock({ children }) {
+  return (
+    <pre style={{
+      margin: 0,
+      whiteSpace: 'pre-wrap',
+      overflowX: 'auto',
+      fontFamily: 'var(--font-mono)',
+      fontSize: '12px',
+      lineHeight: 1.65,
+      color: '#dbeafe',
+      background: 'rgba(15,23,42,0.72)',
+      border: '1px solid rgba(148,163,184,0.16)',
+      borderRadius: '8px',
+      padding: '0.65rem',
+    }}>{children}</pre>
+  );
+}
+
+function CodingProblemReview({ question }) {
+  const prompt = buildCodingPrompt(question);
+  const testCount = prompt.testCases.length || (prompt.testsFromText ? 1 : 0);
+
+  return (
+    <div style={{ padding:'0.85rem', background:'rgba(8,13,28,0.82)', border:'1px solid rgba(56,189,248,0.18)', borderRadius:'8px', marginBottom:'0.75rem' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', gap:'0.75rem', flexWrap:'wrap', marginBottom:'0.75rem' }}>
+        <div>
+          <div style={{ fontSize:'10px', color:'#38bdf8', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700 }}>Coding Problem</div>
+          <div style={{ fontSize:'14px', fontWeight:700, color:'var(--text)', lineHeight:1.45, marginTop:'0.2rem' }}>{prompt.title}</div>
+        </div>
+        <Badge color="#38bdf8">{testCount} test cases</Badge>
+      </div>
+
+      <div style={{ display:'grid', gap:'0.75rem' }}>
+        <section>
+          <div style={{ fontSize:'10px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'0.35rem' }}>Problem Description</div>
+          <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.7, whiteSpace:'pre-wrap' }}>{prompt.description}</div>
+        </section>
+
+        {prompt.expectedOutput && (
+          <section>
+            <div style={{ fontSize:'10px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'0.35rem' }}>Expected Output</div>
+            <CodeBlock>{prompt.expectedOutput}</CodeBlock>
+          </section>
+        )}
+
+        {(prompt.testCases.length > 0 || prompt.testsFromText) && (
+          <section>
+            <div style={{ fontSize:'10px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'0.35rem' }}>Test Cases</div>
+            {prompt.testCases.length > 0 ? (
+              <div style={{ display:'grid', gap:'0.55rem' }}>
+                {prompt.testCases.map((tc, index) => (
+                  <div key={`${tc.input}-${index}`} style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)', gap:'0.55rem' }} className="history-testcase-grid">
+                    <div>
+                      <div style={{ fontSize:'10px', color:'#93c5fd', marginBottom:'0.25rem' }}>Input {index + 1}</div>
+                      <CodeBlock>{tc.input || '-'}</CodeBlock>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:'10px', color:'#86efac', marginBottom:'0.25rem' }}>Output {index + 1}</div>
+                      <CodeBlock>{tc.expectedOutput || '-'}</CodeBlock>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <CodeBlock>{prompt.testsFromText}</CodeBlock>
+            )}
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Full session detail view ──
 function DetailView({ item, onBack }) {
   const [tab, setTab] = useState('overview'); // 'overview' | 'qa' | 'analysis'
@@ -246,6 +350,10 @@ function DetailView({ item, onBack }) {
                   </div>
                 </div>
 
+                {q.type === 'coding' && (
+                  <CodingProblemReview question={q} />
+                )}
+
                 {q.type === 'coding' && q.codingSubmission && (
                   <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.75, padding:'0.75rem', background:'rgba(20,20,42,0.5)', borderRadius:'8px', marginBottom:'0.5rem', borderLeft:'3px solid rgba(99,102,241,0.35)' }}>
                     <div style={{ display:'flex', justifyContent:'space-between', gap:'0.75rem', flexWrap:'wrap', marginBottom:'0.5rem' }}>
@@ -336,6 +444,7 @@ function DetailView({ item, onBack }) {
           .history-card-footer { flex-direction: column !important; align-items: flex-start !important; gap: 0.5rem !important; }
           .history-card-footer span { width: 100% !important; }
           .history-card-badges { gap: 0.4rem !important; }
+          .history-testcase-grid { grid-template-columns: 1fr !important; }
           h2 { font-size: 20px !important; }
           h3 { font-size: 16px !important; }
           .score-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important; }
