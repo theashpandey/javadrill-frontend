@@ -146,6 +146,11 @@ export default function InterviewPage() {
     return `${m}:${s}`;
   };
 
+  const codingPromptSummary = (question) => {
+    const parsed = buildCodingPrompt(question);
+    return parsed.title || parsed.description || question?.question || 'Coding problem';
+  };
+
   // ── Start countdown timer ──
   const startTimer = useCallback((mins) => {
     const total = mins * 60;
@@ -358,7 +363,7 @@ export default function InterviewPage() {
       setCodingTimer(timerMinutes * 60);
 
       // Speak the question
-      const fullText = (idx === 0 ? `Hi! I'm Sarah, your ${getRoleLabel(interviewRole)} interviewer today. ` : "Next question — ") + q.question;
+      const fullText = (idx === 0 ? `Hi! I'm Sarah, your ${getRoleLabel(interviewRole)} interviewer today. ` : "Next question — ") + codingPromptSummary(q);
       setAiText(fullText);
       voice.speak(fullText, () => {
         const startedAt = Date.now();
@@ -810,6 +815,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
       {/* User input area */}
       {isCodingQuestion ? (
         <CodingEditor
+          question={q}
           code={code}
           setCode={setCode}
           language={language}
@@ -918,7 +924,110 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
 }
 
 // ── Coding Editor Component ──
-function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitting, timer, timerRunning }) {
+function buildCodingPrompt(question) {
+  const codingData = question?.codingData || {};
+  const rawQuestion = String(question?.question || '').trim();
+  const rawDescription = String(codingData.description || '').trim();
+  const rawExpected = String(codingData.expectedOutput || '').trim();
+  const rawTestCases = Array.isArray(codingData.testCases) ? codingData.testCases : [];
+  const combined = [rawDescription, rawQuestion].filter(Boolean).join('\n\n');
+
+  const pickSection = (labels, stopLabels) => {
+    const labelPattern = labels.join('|');
+    const stopPattern = stopLabels.join('|');
+    const match = combined.match(new RegExp(`(?:^|\\n)\\s*(?:${labelPattern})\\s*:?\\s*([\\s\\S]*?)(?=\\n\\s*(?:${stopPattern})\\s*:?|$)`, 'i'));
+    return match ? match[1].trim() : '';
+  };
+
+  const expectedFromText = pickSection(['expected\\s*output', 'output'], ['test\\s*cases?', 'examples?', 'constraints?', 'problem\\s*description', 'description']);
+  const descriptionFromText = pickSection(['problem\\s*description', 'description', 'statement'], ['expected\\s*output', 'output', 'test\\s*cases?', 'examples?', 'constraints?']);
+  const testsFromText = pickSection(['test\\s*cases?', 'examples?'], ['expected\\s*output', 'constraints?', 'problem\\s*description', 'description']);
+  const title = rawQuestion
+    .replace(/(?:problem\s*description|expected\s*output|test\s*cases?|examples?)\s*:.*$/is, '')
+    .trim();
+
+  return {
+    title: title || rawQuestion.split('\n')[0] || 'Coding Problem',
+    description: rawDescription || descriptionFromText || rawQuestion,
+    expectedOutput: rawExpected || expectedFromText,
+    testCases: rawTestCases.filter(tc => tc && (tc.input || tc.expectedOutput)),
+    testsFromText,
+  };
+}
+
+function CodeBlock({ children }) {
+  return (
+    <pre style={{
+      margin: 0,
+      whiteSpace: 'pre-wrap',
+      overflowX: 'auto',
+      fontFamily: 'var(--font-mono)',
+      fontSize: '12px',
+      lineHeight: 1.65,
+      color: '#dbeafe',
+      background: 'rgba(15,23,42,0.72)',
+      border: '1px solid rgba(148,163,184,0.16)',
+      borderRadius: '8px',
+      padding: '0.7rem',
+    }}>{children}</pre>
+  );
+}
+
+function CodingProblemPanel({ question }) {
+  const prompt = buildCodingPrompt(question);
+
+  return (
+    <Card style={{ padding:'1rem', background:'rgba(8,13,28,0.88)', border:'1px solid rgba(56,189,248,0.18)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'0.75rem', marginBottom:'0.85rem', flexWrap:'wrap' }}>
+        <div>
+          <div style={{ fontSize:'11px', color:'#38bdf8', textTransform:'uppercase', letterSpacing:'1.2px', fontWeight:700 }}>Coding Problem</div>
+          <div style={{ fontSize:'18px', fontWeight:800, color:'var(--text)', lineHeight:1.35, marginTop:'0.2rem' }}>{prompt.title}</div>
+        </div>
+        <Badge color="#38bdf8">{prompt.testCases.length || (prompt.testsFromText ? 1 : 0)} test cases</Badge>
+      </div>
+
+      <div style={{ display:'grid', gap:'0.9rem' }}>
+        <section>
+          <div style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'0.45rem' }}>Problem Description</div>
+          <div style={{ fontSize:'14px', lineHeight:1.75, color:'var(--text2)', whiteSpace:'pre-wrap' }}>{prompt.description}</div>
+        </section>
+
+        {prompt.expectedOutput && (
+          <section>
+            <div style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'0.45rem' }}>Expected Output</div>
+            <CodeBlock>{prompt.expectedOutput}</CodeBlock>
+          </section>
+        )}
+
+        {(prompt.testCases.length > 0 || prompt.testsFromText) && (
+          <section>
+            <div style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'0.45rem' }}>Test Cases</div>
+            {prompt.testCases.length > 0 ? (
+              <div style={{ display:'grid', gap:'0.6rem' }}>
+                {prompt.testCases.map((tc, index) => (
+                  <div key={`${tc.input}-${index}`} style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)', gap:'0.6rem' }}>
+                    <div>
+                      <div style={{ fontSize:'10px', color:'#93c5fd', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:'0.25rem' }}>Input {index + 1}</div>
+                      <CodeBlock>{tc.input || '-'}</CodeBlock>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:'10px', color:'#86efac', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:'0.25rem' }}>Output {index + 1}</div>
+                      <CodeBlock>{tc.expectedOutput || '-'}</CodeBlock>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <CodeBlock>{prompt.testsFromText}</CodeBlock>
+            )}
+          </section>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function CodingEditor({ question, code, setCode, language, setLanguage, onSubmit, submitting, timer, timerRunning }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const editorRef = useRef(null);
 
@@ -954,16 +1063,18 @@ function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitti
   }, []);
 
   return (
-    <Card style={{
-      padding: 0,
-      background: '#111827',
-      border: '1px solid rgba(148,163,184,0.22)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 36px rgba(0,0,0,0.24)',
-      height: isFullscreen ? '80vh' : '430px',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden'
-    }}>
+    <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
+      <CodingProblemPanel question={question} />
+      <Card style={{
+        padding: 0,
+        background: '#111827',
+        border: '1px solid rgba(148,163,184,0.22)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 36px rgba(0,0,0,0.24)',
+        height: isFullscreen ? '80vh' : '430px',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -1041,7 +1152,8 @@ function CodingEditor({ code, setCode, language, setLanguage, onSubmit, submitti
           }}
         />
       </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
 
