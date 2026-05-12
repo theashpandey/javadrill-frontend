@@ -863,9 +863,9 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'0.85rem', flexWrap:'wrap' }}>
           {isCodingQuestion ? (
             <>
-              {code.trim() && !submitting && (
+              {!submitting && (
                 <Button onClick={submitCodingAnswer} variant="primary" size="md">
-                  ✓ Submit Code
+                  {code.trim() ? 'Submit Code' : 'Submit Without Code'}
                 </Button>
               )}
               {submitting && (

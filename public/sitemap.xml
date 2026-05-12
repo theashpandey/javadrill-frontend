@@ -46,6 +46,41 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://www.assessarc.com/free-ai-mock-interview-online</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://www.assessarc.com/technical-interview-practice</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.assessarc.com/coding-interview-practice</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.assessarc.com/interview-preparation-for-freshers</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.assessarc.com/devops-interview-practice</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.assessarc.com/system-design-interview-practice</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.assessarc.com/manager-interview-practice</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
     <loc>https://www.assessarc.com/privacy</loc>
     <priority>0.5</priority>
   </url>

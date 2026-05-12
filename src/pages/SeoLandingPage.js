@@ -41,6 +41,24 @@ export default function SeoLandingPage({ path }) {
         },
       })),
     },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: SITE_URL,
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: page.title,
+          item: pageUrl,
+        },
+      ],
+    },
   ];
 
   return (
@@ -48,6 +66,7 @@ export default function SeoLandingPage({ path }) {
       <Helmet>
         <title>{page.metaTitle}</title>
         <meta name="description" content={page.description} />
+        <meta name="keywords" content={[page.primaryKeyword, ...page.supportingKeywords].join(', ')} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={pageUrl} />
         <meta property="og:type" content="website" />
