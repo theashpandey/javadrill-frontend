@@ -179,7 +179,7 @@ export default function HomePage() {
   return (
     <>
       <Helmet>
-        <title>AssessArc — Free AI Mock Interview Practice | Java, Python, React, DevOps & More</title>
+        <title>AssessArc - AI Mock Interviews for Tech & Professional Roles | Practice Online Free</title>
         <meta name="description" content="Practice AI mock interviews online with Sarah AI. Get voice-based interviews, resume-based questions, instant feedback, scores, and analytics for Java, Python, React, data science, HR, and manager roles." />
         <meta name="keywords" content="AI mock interview, mock interview practice, AI interview practice, Java interview practice, Python mock interview, React interview practice, data science mock interview, HR interview practice, resume based interview questions, voice mock interview" />
         <meta property="og:title" content="AI Mock Interview Practice Online | AssessArc" />
