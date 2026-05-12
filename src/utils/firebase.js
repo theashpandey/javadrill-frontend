@@ -17,12 +17,12 @@ import {
 } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCv33WveF_ILY1on5C966BeGkQUf3zVjCE",
-  authDomain: "assessarc-6cd04.firebaseapp.com",
-  projectId: "assessarc-6cd04",
-  storageBucket: "assessarc-6cd04.firebasestorage.app",
-  messagingSenderId: "869826255999",
-  appId: "1:869826255999:web:7de72bc204f1ee109cf34a"
+  apiKey: "AIzaSyBbsz3ce5g4esNbwC9L_P0uGAkVZ-Mx1bc",
+  authDomain: "assessarc-504c9.firebaseapp.com",
+  projectId: "assessarc-504c9",
+  storageBucket: "assessarc-504c9.firebasestorage.app",
+  messagingSenderId: "597215005430",
+  appId: "1:597215005430:web:035803a72e356bec3a3ad7"
 };
 
 const app = initializeApp(firebaseConfig);
