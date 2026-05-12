@@ -259,6 +259,12 @@ export default function PerformancePage() {
             <h3 style={{ fontFamily:'var(--font-display)', fontSize:'18px', fontWeight:700 }}>🧠 Interviewer Analysis</h3>
             <Badge color="#818cf8">{analysis.sessionCount} sessions</Badge>
             {analysis.avgScore > 0 && <Badge color="#10b981">Avg {analysis.avgScore}%</Badge>}
+            {analysis.cached && <Badge color="#f59e0b">Saved</Badge>}
+            {analysis.generatedAt > 0 && (
+              <span style={{ color:'var(--text3)', fontSize:'11px' }}>
+                {new Date(analysis.generatedAt).toLocaleString()}
+              </span>
+            )}
           </div>
 
           {/* Verdict — highlighted */}
@@ -332,7 +338,7 @@ export default function PerformancePage() {
           )}
 
           <button onClick={() => setAnalysis(null)} style={{ background:'transparent', border:'none', color:'var(--text3)', fontSize:'12px', cursor:'pointer', textDecoration:'underline', alignSelf:'flex-start' }}>
-            Refresh Analysis
+            Hide Analysis
           </button>
         </div>
       )}
