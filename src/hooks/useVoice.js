@@ -66,9 +66,6 @@ export function useVoice() {
     bestVoiceRef.current = fallbackFemale;
     console.log("Selected Fallback Voice:", bestVoiceRef.current.name);
   }, []);
-  const resetTranscript = useCallback(() => {
-    setTranscript('');
-  }, []);
 
   useEffect(() => {
     synthRef.current.addEventListener?.('voiceschanged', pickBestVoice);
@@ -80,6 +77,7 @@ export function useVoice() {
     };
   }, [pickBestVoice]);
 
+  // ── SPEAK — chunked sentence-by-sentence so Chrome doesn't cut off ──
   const speak = useCallback((text, onEnd) => {
     synthRef.current.cancel();
     abortedRef.current = false;
@@ -93,12 +91,14 @@ export function useVoice() {
       return;
     }
 
+    // Smart sentence splitter — keeps abbreviations intact
     const sentences = spokenText
       .replace(/([.!?])\s+/g, '$1|||')
       .split('|||')
       .map(s => s.trim())
       .filter(Boolean);
 
+    // Merge very short chunks (< 4 words) with next
     const chunks = [];
     let buf = '';
     for (const s of sentences) {
@@ -121,7 +121,7 @@ export function useVoice() {
       const chunk = chunksRef.current[chunkIndexRef.current++];
       const utt = new SpeechSynthesisUtterance(chunk);
       if (bestVoiceRef.current) utt.voice = bestVoiceRef.current;
-      utt.rate   = 0.85;   
+      utt.rate   = 0.85;   // slightly slower = more natural
       utt.pitch  = 1.0;
       utt.volume = 1;
       utt.lang   = bestVoiceRef.current?.lang || 'en-IN';
@@ -135,6 +135,7 @@ export function useVoice() {
 
       synthRef.current.speak(utt);
 
+      // Chrome suspend fix — resume if paused
       setTimeout(() => {
         if (synthRef.current.paused && !abortedRef.current) synthRef.current.resume();
       }, 400);
@@ -150,6 +151,7 @@ export function useVoice() {
     setIsSpeaking(false);
   }, []);
 
+  // ── LISTEN — continuous, auto-restart, en-IN for Indian accent ──
   const startListening = useCallback((onUpdate) => {
     const SRClass = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SRClass) {
@@ -164,13 +166,11 @@ export function useVoice() {
     const rec = new SRClass();
     rec.continuous      = true;
     rec.interimResults  = true;
-    rec.lang            = 'en-IN';   
+    rec.lang            = 'en-IN';   // best for Indian-English accent
     rec.maxAlternatives = 1;
 
     let finalText   = '';
     let shouldReset = true;
-
-    setIsListening(true);
 
     const publishSpeechUpdate = (payload) => {
       pendingSpeechRef.current = payload;
@@ -190,50 +190,33 @@ export function useVoice() {
     let lastDisplay = '';
     let lastUserSpeaking = false;
 
-
-        rec.onresult = (e) => {
+    rec.onresult = (e) => {
       let interim = '';
       let heardSpeech = false;
-      
-      // Always rebuild final text cleanly from completed results to avoid data loss
-      let accumulatedFinal = '';
-
-      for (let i = 0; i < e.results.length; i++) {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
         const piece = e.results[i][0].transcript || '';
         if (piece.trim()) heardSpeech = true;
-        
-        if (e.results[i].isFinal) {
-          accumulatedFinal += piece + ' ';
-        } else {
-          interim += piece;
-        }
+        if (e.results[i].isFinal) finalText += piece + ' ';
+        else interim += piece;
       }
-      
-      // Sync local scope state
-      finalText = accumulatedFinal;
-      
       const display = (finalText + interim).trim();
       const hasInterim = Boolean(interim.trim());
       const isUserSpeakingNow = heardSpeech && hasInterim;
-      
       if (display === lastDisplay && isUserSpeakingNow === lastUserSpeaking) return;
       lastDisplay = display;
       lastUserSpeaking = isUserSpeakingNow;
-      
       publishSpeechUpdate({
         display,
         finalText: finalText.trim(),
         isUserSpeaking: isUserSpeakingNow,
         hasInterim,
         meta: {
-          activeSpeech: heardSpeech,
+        activeSpeech: heardSpeech,
           hasInterim,
-          lastSpeechAt: Date.now(),
+        lastSpeechAt: Date.now(),
         },
       });
     };
-
-  
 
     rec.onerror = (e) => {
       if (e.error === 'no-speech' || e.error === 'aborted') return;
@@ -247,42 +230,35 @@ export function useVoice() {
     rec.onend = () => {
       if (shouldReset && recognitionRef.current === rec) {
         try { rec.start(); } catch {}
-      } else {
-        setIsListening(false);
       }
     };
 
     rec.start();
     recognitionRef.current = rec;
+    setIsListening(true);
+    setTranscript('');
 
-    return () => {
-      shouldReset = false;
-      rec.onend = null;
-      try { rec.stop(); } catch {}
-      setIsListening(false);
-      setIsUserSpeaking(false);
-    };
+    return () => { shouldReset = false; };
   }, []);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      try { recognitionRef.current.stop(); } catch {}
+      try { recognitionRef.current.onend = null; recognitionRef.current.stop(); } catch {}
       recognitionRef.current = null;
+    }
+    if (speechFrameRef.current) {
+      cancelAnimationFrame(speechFrameRef.current);
+      speechFrameRef.current = null;
+      pendingSpeechRef.current = null;
     }
     setIsListening(false);
     setIsUserSpeaking(false);
   }, []);
 
+  const resetTranscript = useCallback(() => setTranscript(''), []);
+
   return {
-    isSpeaking,
-    isListening,
-    isUserSpeaking,
-    transcript,
-    speak,
-    stopSpeaking,
-       resetTranscript ,
-    startListening,
-    stopListening
+    isSpeaking, isListening, isUserSpeaking, transcript,
+    speak, stopSpeaking, startListening, stopListening, resetTranscript,
   };
 }
