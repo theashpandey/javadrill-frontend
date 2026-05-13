@@ -1,125 +1,175 @@
+// 
+
+
+
+
+
 import { useRef, useState, useCallback, useEffect } from 'react';
 
-export function useVoice() {
-  const [isSpeaking, setIsSpeaking]   = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isUserSpeaking, setIsUserSpeaking] = useState(false);
-  const [transcript, setTranscript]   = useState('');
-  const recognitionRef  = useRef(null);
-  const bestVoiceRef    = useRef(null);
-  const synthRef        = useRef(window.speechSynthesis);
-  const chunkIndexRef   = useRef(0);
-  const chunksRef       = useRef([]);
-  const abortedRef      = useRef(false);
-  const onEndCallbackRef = useRef(null);
-  const speechFrameRef  = useRef(null);
-  const pendingSpeechRef = useRef(null);
+// ─────────────────────────────────────────────────────────────────────────────
+// useVoice — Deepgram WebSocket transcription + Web Speech API TTS
+//
+// HOW TO GET A DEEPGRAM API KEY (free tier: 12,000 min/month):
+//   1. Go to https://console.deepgram.com and sign up
+//   2. Create a project → API Keys → Create Key (scope: "Usage: Listen")
+//   3. Add to your .env:  REACT_APP_DEEPGRAM_API_KEY=your_key_here
+//
+// WHY DEEPGRAM OVER WEB SPEECH API:
+//   • Nova-2 model is trained on Indian-English and technical vocabulary
+//   • Returns only confident FINAL transcripts (no noisy interim guesses)
+//   • Handles "Kafka", "Cosmos DB", "acks=all", "Spring Boot" correctly
+//   • WebSocket keeps connection alive without the gap/restart problem
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const normalizeForSpeech = useCallback((value) => {
-    return String(value || '')
-      .replace(/```[\s\S]*?```/g, ' code block ')
-      .replace(/`([^`]+)`/g, '$1')
-      .replace(/[*_~#>|[\]{}]/g, ' ')
-      .replace(/[“”]/g, '"')
-      .replace(/[‘’]/g, "'")
-      .replace(/&/g, ' and ')
-      .replace(/\s+/g, ' ')
-      .trim();
+const DEEPGRAM_API_KEY = process.env.REACT_APP_DEEPGRAM_API_KEY || '16754a97b5a3719d4914fb1e95aaa230437daad3';
+
+// Deepgram WebSocket URL — nova-2 model, Indian English, punctuation on
+const DG_WS_URL = [
+  'wss://api.deepgram.com/v1/listen',
+  '?model=nova-2',
+  '&language=en-IN',           // Indian English accent model
+  '&punctuate=true',           // Add punctuation for readability
+  '&smart_format=true',        // Format numbers, dates, etc.
+  '&interim_results=false',    // ONLY fire on confident final results — no noise
+  '&endpointing=800',          // Treat 800ms silence as end of utterance
+  '&utterance_end_ms=1500',    // Flush after 1.5s of silence
+  '&filler_words=false',       // Strip "um", "uh" automatically
+  '&no_delay=true',            // Low-latency mode
+].join('');
+
+export function useVoice() {
+  const [isSpeaking, setIsSpeaking]       = useState(false);
+  const [isListening, setIsListening]     = useState(false);
+  const [isUserSpeaking, setIsUserSpeaking] = useState(false);
+  const [transcript, setTranscript]       = useState('');
+
+  // TTS refs
+  const bestVoiceRef      = useRef(null);
+  const synthRef          = useRef(window.speechSynthesis);
+  const chunkIndexRef     = useRef(0);
+  const chunksRef         = useRef([]);
+  const abortedRef        = useRef(false);
+  const onEndCallbackRef  = useRef(null);
+
+  // Deepgram / mic refs
+  const wsRef             = useRef(null);   // WebSocket to Deepgram
+  const mediaRecorderRef  = useRef(null);   // MediaRecorder sending audio
+  const streamRef         = useRef(null);   // getUserMedia stream
+  const finalTextRef      = useRef('');     // Accumulated confirmed text
+  const onUpdateRef       = useRef(null);   // Caller's transcript callback
+  const listeningRef      = useRef(false);  // Guard against double-start
+  const silenceTimerRef   = useRef(null);   // Detects when user stops speaking
+  const lastSpeechAtRef   = useRef(0);
+
+  // ── Cleanup helper ──────────────────────────────────────────────────────────
+  const teardownDeepgram = useCallback(() => {
+    listeningRef.current = false;
+
+    // Stop MediaRecorder
+    if (mediaRecorderRef.current) {
+      try {
+        if (mediaRecorderRef.current.state !== 'inactive')
+          mediaRecorderRef.current.stop();
+      } catch {}
+      mediaRecorderRef.current = null;
+    }
+
+    // Stop mic stream tracks
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+
+    // Close WebSocket
+    if (wsRef.current) {
+      try {
+        if (wsRef.current.readyState === WebSocket.OPEN) {
+          // Send CloseStream message before closing
+          wsRef.current.send(JSON.stringify({ type: 'CloseStream' }));
+        }
+        wsRef.current.close();
+      } catch {}
+      wsRef.current = null;
+    }
+
+    clearTimeout(silenceTimerRef.current);
+    setIsListening(false);
+    setIsUserSpeaking(false);
   }, []);
 
-  // ── Voice selection ──
+  // ── Cleanup on unmount ──────────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      synthRef.current.cancel();
+      teardownDeepgram();
+    };
+  }, [teardownDeepgram]);
+
+  // ── TTS: Voice selection ────────────────────────────────────────────────────
   const pickBestVoice = useCallback(() => {
-  const voices = synthRef.current.getVoices();
-  if (!voices.length) return;
-
-  // 🇮🇳 Priority: Indian voices FIRST
-  const preferred = [
-    'Microsoft Heera',
-    'Microsoft Ravi',
-    'Google Indian English',
-    'en-IN',
-  ];
-
-  // Step 1: Exact / partial match
-  for (const name of preferred) {
-    const v = voices.find(v =>
-      v.name.toLowerCase().includes(name.toLowerCase()) ||
-      v.lang === 'en-IN'
-    );
-    if (v) {
-      bestVoiceRef.current = v;
-      console.log("Selected voice:", v.name);
-      return;
-    }
-  }
-
-  // Step 2: fallback to English
-  bestVoiceRef.current =
-    voices.find(v => v.lang === 'en-IN') ||
-    voices.find(v => v.lang.startsWith('en')) ||
-    voices[0];
-
-  console.log("Fallback voice:", bestVoiceRef.current.name);
-}, []);
-  const pickBestVoice1 = useCallback(() => {
     const voices = synthRef.current.getVoices();
     if (!voices.length) return;
 
-    // Priority list — natural sounding female/neutral voices
+    // Prefer Indian English voices, then fall back to any English
     const preferred = [
-      'Microsoft Aria Online (Natural) - English (United States)',
-      'Microsoft Jenny Online (Natural) - English (United States)',
-      'Google UK English Female',
-      'Google US English',
-      'Samantha',       // macOS
-      'Karen',          // macOS AU
-      'Moira',          // macOS
-      'Tessa',
+      'Microsoft Heera',
+      'Microsoft Ravi',
+      'Google Indian English',
     ];
 
     for (const name of preferred) {
-      const v = voices.find(v => v.name === name || v.name.includes(name.split('(')[0].trim()));
+      const v = voices.find(v =>
+        v.name.toLowerCase().includes(name.toLowerCase()) || v.lang === 'en-IN'
+      );
       if (v) { bestVoiceRef.current = v; return; }
     }
-    // Fallback: first English voice
+
     bestVoiceRef.current =
-      voices.find(v => v.lang === 'en-US' && !v.name.includes('Google') ) ||
+      voices.find(v => v.lang === 'en-IN') ||
       voices.find(v => v.lang.startsWith('en')) ||
       voices[0];
   }, []);
 
   useEffect(() => {
-    synthRef.current.addEventListener?.('voiceschanged', pickBestVoice);
     synthRef.current.onvoiceschanged = pickBestVoice;
     pickBestVoice();
-    return () => {
-      synthRef.current.cancel();
-      if (speechFrameRef.current) cancelAnimationFrame(speechFrameRef.current);
-    };
   }, [pickBestVoice]);
 
-  // ── SPEAK — chunked sentence-by-sentence so Chrome doesn't cut off ──
+  // ── TTS: Normalize text for speech ──────────────────────────────────────────
+  const normalizeForSpeech = useCallback((value) => {
+    return String(value || '')
+      .replace(/```[\s\S]*?```/g, ' code block ')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/[*_~#>|[\]{}]/g, ' ')
+      .replace(/[""]/g, '"')
+      .replace(/['']/g, "'")
+      .replace(/&/g, ' and ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }, []);
+
+  // ── TTS: speak() ────────────────────────────────────────────────────────────
   const speak = useCallback((text, onEnd) => {
     synthRef.current.cancel();
     abortedRef.current = false;
     setIsSpeaking(true);
     onEndCallbackRef.current = onEnd;
-    const spokenText = normalizeForSpeech(text);
 
+    const spokenText = normalizeForSpeech(text);
     if (!spokenText) {
       setIsSpeaking(false);
       onEndCallbackRef.current?.();
       return;
     }
 
-    // Smart sentence splitter — keeps abbreviations intact
+    // Smart sentence splitter — keep abbreviations intact
     const sentences = spokenText
       .replace(/([.!?])\s+/g, '$1|||')
       .split('|||')
       .map(s => s.trim())
       .filter(Boolean);
 
-    // Merge very short chunks (< 4 words) with next
+    // Merge very short chunks with next sentence
     const chunks = [];
     let buf = '';
     for (const s of sentences) {
@@ -128,7 +178,7 @@ export function useVoice() {
     }
     if (buf) chunks.push(buf);
 
-    chunksRef.current   = chunks;
+    chunksRef.current     = chunks;
     chunkIndexRef.current = 0;
 
     const speakChunk = () => {
@@ -140,9 +190,9 @@ export function useVoice() {
       }
 
       const chunk = chunksRef.current[chunkIndexRef.current++];
-      const utt = new SpeechSynthesisUtterance(chunk);
+      const utt   = new SpeechSynthesisUtterance(chunk);
       if (bestVoiceRef.current) utt.voice = bestVoiceRef.current;
-      utt.rate   = 0.88;   // slightly slower = more natural
+      utt.rate   = 0.88;
       utt.pitch  = 1.05;
       utt.volume = 1;
       utt.lang   = bestVoiceRef.current?.lang || 'en-IN';
@@ -150,15 +200,15 @@ export function useVoice() {
       utt.onend   = () => setTimeout(speakChunk, 140);
       utt.onerror = (e) => {
         if (e.error === 'interrupted' || e.error === 'canceled') return;
-        console.warn('TTS error:', e.error);
         setTimeout(speakChunk, 80);
       };
 
       synthRef.current.speak(utt);
 
-      // Chrome suspend fix — resume if paused
+      // Chrome suspend fix
       setTimeout(() => {
-        if (synthRef.current.paused && !abortedRef.current) synthRef.current.resume();
+        if (synthRef.current.paused && !abortedRef.current)
+          synthRef.current.resume();
       }, 400);
     };
 
@@ -166,120 +216,170 @@ export function useVoice() {
   }, [normalizeForSpeech]);
 
   const stopSpeaking = useCallback(() => {
-    abortedRef.current = true;
-    synthRef.current.cancel();
+    abortedRef.current    = true;
     chunkIndexRef.current = 9999;
+    synthRef.current.cancel();
     setIsSpeaking(false);
   }, []);
 
-  // ── LISTEN — continuous, auto-restart, en-IN for Indian accent ──
-  const startListening = useCallback((onUpdate) => {
-    const SRClass = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SRClass) {
-      alert('Speech recognition needs Chrome or Edge. Please switch browsers.');
-      return () => {};
+  // ── LISTEN: Deepgram WebSocket ───────────────────────────────────────────────
+  //
+  // Architecture:
+  //   getUserMedia → MediaRecorder (opus, 16kHz) → WebSocket → Deepgram Nova-2
+  //   Deepgram returns only FINAL transcripts → accumulated into finalTextRef
+  //   onUpdate callback fires with the clean, confirmed text
+  //
+  const startListening = useCallback(async (onUpdate) => {
+    if (listeningRef.current) return;
+
+    if (!DEEPGRAM_API_KEY) {
+      console.error(
+        '[useVoice] No Deepgram API key found.\n' +
+        'Add REACT_APP_DEEPGRAM_API_KEY to your .env file.\n' +
+        'Get a free key at https://console.deepgram.com'
+      );
+      // Graceful fallback — alert only in development
+      if (process.env.NODE_ENV === 'development') {
+        alert(
+          'Deepgram API key missing.\n\n' +
+          'Add REACT_APP_DEEPGRAM_API_KEY=your_key to .env\n' +
+          'Get a free key: https://console.deepgram.com\n\n' +
+          '12,000 free minutes/month — no credit card needed.'
+        );
+      }
+      return;
     }
 
-    if (recognitionRef.current) {
-      try { recognitionRef.current.onend = null; recognitionRef.current.stop(); } catch {}
-    }
-
-    const rec = new SRClass();
-    rec.continuous      = true;
-    rec.interimResults  = true;
-    rec.lang            = 'en-IN';   // best for Indian-English accent
-    rec.maxAlternatives = 1;
-
-    let finalText   = '';
-    let shouldReset = true;
-
-    const publishSpeechUpdate = (payload) => {
-      pendingSpeechRef.current = payload;
-      if (speechFrameRef.current) return;
-      speechFrameRef.current = requestAnimationFrame(() => {
-        speechFrameRef.current = null;
-        const latest = pendingSpeechRef.current;
-        pendingSpeechRef.current = null;
-        if (!latest) return;
-        setIsUserSpeaking(latest.isUserSpeaking);
-        setTranscript(latest.display);
-        onUpdate?.(latest.display, latest.finalText, latest.meta);
-        if (!latest.hasInterim) setTimeout(() => setIsUserSpeaking(false), 350);
-      });
-    };
-
-    let lastDisplay = '';
-    let lastUserSpeaking = false;
-
-    rec.onresult = (e) => {
-      let interim = '';
-      let heardSpeech = false;
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const piece = e.results[i][0].transcript || '';
-        if (piece.trim()) heardSpeech = true;
-        if (e.results[i].isFinal) finalText += piece + ' ';
-        else interim += piece;
-      }
-      const display = (finalText + interim).trim();
-      const hasInterim = Boolean(interim.trim());
-      const isUserSpeakingNow = heardSpeech && hasInterim;
-      if (display === lastDisplay && isUserSpeakingNow === lastUserSpeaking) return;
-      lastDisplay = display;
-      lastUserSpeaking = isUserSpeakingNow;
-      publishSpeechUpdate({
-        display,
-        finalText: finalText.trim(),
-        isUserSpeaking: isUserSpeakingNow,
-        hasInterim,
-        meta: {
-        activeSpeech: heardSpeech,
-          hasInterim,
-        lastSpeechAt: Date.now(),
-        },
-      });
-    };
-
-    rec.onerror = (e) => {
-      if (e.error === 'no-speech' || e.error === 'aborted') return;
-      console.warn('SR error:', e.error);
-      if (e.error === 'not-allowed') {
-        alert('Microphone permission denied. Please allow mic access and reload.');
-        setIsListening(false);
-      }
-    };
-
-    rec.onend = () => {
-      if (shouldReset && recognitionRef.current === rec) {
-        try { rec.start(); } catch {}
-      }
-    };
-
-    rec.start();
-    recognitionRef.current = rec;
-    setIsListening(true);
+    listeningRef.current = true;
+    onUpdateRef.current  = onUpdate;
+    finalTextRef.current = '';
     setTranscript('');
 
-    return () => { shouldReset = false; };
+    // ── Step 1: Get microphone ──
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,       // Deepgram works best at 16kHz
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+    } catch (err) {
+      listeningRef.current = false;
+      if (err.name === 'NotAllowedError') {
+        alert('Microphone permission denied. Please allow mic access and reload.');
+      } else {
+        console.error('[useVoice] getUserMedia error:', err);
+      }
+      return;
+    }
+
+    streamRef.current = stream;
+
+    // ── Step 2: Open Deepgram WebSocket ──
+    const ws = new WebSocket(DG_WS_URL, ['token', DEEPGRAM_API_KEY]);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      // ── Step 3: Start MediaRecorder → pipe audio to WebSocket ──
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : 'audio/ogg;codecs=opus';
+
+      const recorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 16000,
+      });
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+          ws.send(e.data);
+        }
+      };
+
+      // Send audio chunks every 250ms — balance between latency and overhead
+      recorder.start(250);
+      mediaRecorderRef.current = recorder;
+      setIsListening(true);
+    };
+
+    // ── Step 4: Handle Deepgram transcription results ──
+    ws.onmessage = (event) => {
+      let data;
+      try { data = JSON.parse(event.data); } catch { return; }
+
+      // Only process final transcripts (interim_results=false means all are final,
+      // but guard with is_final check for safety)
+      if (data.type !== 'Results') return;
+
+      const transcript_text = data.channel?.alternatives?.[0]?.transcript || '';
+      const isFinal         = data.is_final;
+      const speechFinal     = data.speech_final; // Deepgram's utterance boundary
+
+      if (!transcript_text.trim()) return;
+
+      if (isFinal) {
+        // Accumulate confirmed text
+        finalTextRef.current = (finalTextRef.current + ' ' + transcript_text).trim();
+        lastSpeechAtRef.current = Date.now();
+
+        setIsUserSpeaking(true);
+        setTranscript(finalTextRef.current);
+
+        // Fire callback with clean, final text
+        onUpdateRef.current?.(finalTextRef.current, finalTextRef.current, {
+          hasInterim:  false,
+          activeSpeech: true,
+          lastSpeechAt: lastSpeechAtRef.current,
+        });
+
+        // Reset the "user stopped speaking" indicator after a short pause
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+          setIsUserSpeaking(false);
+        }, 1500);
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error('[useVoice] Deepgram WebSocket error:', err);
+    };
+
+    ws.onclose = (event) => {
+      // 1000 = normal close, 1001 = going away — don't log these
+      if (event.code !== 1000 && event.code !== 1001) {
+        console.warn('[useVoice] Deepgram WS closed unexpectedly:', event.code, event.reason);
+      }
+      setIsListening(false);
+      listeningRef.current = false;
+    };
   }, []);
 
+  // ── stopListening ────────────────────────────────────────────────────────────
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      try { recognitionRef.current.onend = null; recognitionRef.current.stop(); } catch {}
-      recognitionRef.current = null;
-    }
-    if (speechFrameRef.current) {
-      cancelAnimationFrame(speechFrameRef.current);
-      speechFrameRef.current = null;
-      pendingSpeechRef.current = null;
-    }
-    setIsListening(false);
-    setIsUserSpeaking(false);
-  }, []);
+    teardownDeepgram();
+  }, [teardownDeepgram]);
 
-  const resetTranscript = useCallback(() => setTranscript(''), []);
+  // ── resetTranscript ──────────────────────────────────────────────────────────
+  const resetTranscript = useCallback(() => {
+    finalTextRef.current = '';
+    setTranscript('');
+  }, []);
 
   return {
-    isSpeaking, isListening, isUserSpeaking, transcript,
-    speak, stopSpeaking, startListening, stopListening, resetTranscript,
+    isSpeaking,
+    isListening,
+    isUserSpeaking,
+    transcript,
+    speak,
+    stopSpeaking,
+    startListening,
+    stopListening,
+    resetTranscript,
   };
 }
