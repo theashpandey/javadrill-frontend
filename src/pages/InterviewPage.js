@@ -836,10 +836,10 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
               </div>
             )}
           </div>
-          <div style={{ minHeight:72, fontSize:'14.5px', lineHeight:1.75, color: (voice.interimDisplay || voice.transcript) || prepareCount != null ? 'var(--text)' : 'var(--text3)', fontStyle: (voice.interimDisplay || voice.transcript) || prepareCount != null ? 'normal' : 'italic' }}>
+          <div style={{ minHeight:72, fontSize:'14.5px', lineHeight:1.75, color: voice.transcript || prepareCount != null ? 'var(--text)' : 'var(--text3)', fontStyle: voice.transcript || prepareCount != null ? 'normal' : 'italic' }}>
             {prepareCount != null
               ? `Listening starts in ${prepareCount}s...`
-              : (voice.interimDisplay || voice.transcript) || 'Mic activates automatically after Sarah finishes speaking...'}
+              : voice.transcript || 'Mic activates automatically after Sarah finishes speaking...'}
           </div>
 
           {prepareCount != null && (
@@ -876,7 +876,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
             </>
           ) : (
             <>
-              {micReady && voice.isListening && (voice.transcript || voice.interimDisplay) && !submitting &&  (
+              {micReady && voice.isListening && voice.transcript && !submitting && (
                 <Button onClick={submitAnswer} variant="primary" size="md">
                   ✓ Submit Answer
                 </Button>
