@@ -33,11 +33,50 @@ const PLANS = [
 ];
 
 const FAQS = [
-  ['How does AssessArc work?', 'Choose a session, listen to Sarah AI, answer by voice, then get feedback and scores after the interview.'],
-  ['Does it use my resume?', 'Yes. Your resume helps generate questions that match your actual role, tech stack, projects, and experience profile.'],
-  ['Will it understand Indian English?', 'The speech recognition is configured for Indian English and works best in Chrome or Edge with a clear microphone.'],
-  ['Do questions repeat?', 'The system tracks asked questions and avoids repeating them in later sessions.'],
-  ['How do payments work?', 'Credits are added only after Razorpay payment verification. You pay per credit pack, not by subscription.'],
+  [
+    'How does AssessArc work?',
+    'Choose an interview session based on your target role, listen to Sarah AI questions, answer naturally using your voice, and receive detailed feedback with scores on communication, confidence, clarity, technical depth, and overall interview performance.'
+  ],
+
+  [
+    'Does it use my resume?',
+    'Yes. Your resume is used to generate personalized interview questions based on your skills, projects, tech stack, work experience, and target role so the interview feels closer to a real company interview.'
+  ],
+
+  [
+    'Will it understand Indian English?',
+    'Yes. AssessArc is optimized for Indian English speech recognition and works best in Google Chrome or Microsoft Edge with a stable internet connection and a clear microphone.'
+  ],
+
+  [
+    'Do questions repeat?',
+    'The platform tracks previously asked questions and intelligently avoids repeating them in future sessions, helping you practice a wider range of interview scenarios.'
+  ],
+
+  [
+    'How do payments work?',
+    'Credits are added only after successful Razorpay payment verification. AssessArc uses a pay-per-credit model, so there are no subscriptions or recurring charges.'
+  ],
+
+  [
+    'Can I redeem unused purchased credits?',
+    'Yes. If you no longer want to continue practicing, you can raise a redeem request from the Wallet page inside your dashboard. Only purchased credits are redeemable. Bonus or promotional credits cannot be redeemed.'
+  ],
+
+  [
+    'What types of interviews can I practice?',
+    'You can practice interviews for software engineering, frontend, backend, Java, React, data analytics, HR, management, architecture, and other professional roles with role-specific question generation.'
+  ],
+
+  [
+    'Does AssessArc support coding interviews?',
+    'Yes. For technical roles, AssessArc can ask coding and problem-solving questions based on your experience level and target role. The platform focuses on realistic interview-style coding discussions instead of only hard DSA questions.'
+  ],
+
+  [
+    'Will I get feedback after every session?',
+    'Yes. Every interview session includes instant AI-generated feedback covering communication skills, answer quality, technical understanding, confidence, and improvement suggestions.'
+  ],
 ];
 
 const SOCIAL_LINKS = [
@@ -213,11 +252,10 @@ export default function HomePage() {
         <main>
           <section className="home-hero">
             <div className="home-hero-copy">
-              <div className="home-eyebrow">AI-powered role-based interview practice</div>
+              <div className="home-eyebrow">AI-powered mock interview practice</div>
               <h1>AssessArc</h1>
               <p className="home-hero-subtitle">
-               Practice real interview questions for engineering, data, HR, architecture, and manager roles, then get instant feedback on clarity, depth, and confidence — just like a real interviewer.
- </p>
+Practice real AI mock interviews with voice-based conversations, resume-based questions, coding challenges, and instant interview feedback for software engineering, HR, data, architecture, and management roles. </p>
               {error && <div className="home-error">{error}</div>}
               <div className="home-hero-actions">
                 <button className="home-primary-btn" onClick={() => openAuth('signin')} disabled={signingIn || loading}>
