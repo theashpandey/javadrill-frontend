@@ -458,6 +458,11 @@ export default function InterviewPage() {
         }),
       });
 
+      const correctedAnswer = res.answer || ans || '(no answer)';
+      const answerUpd = [...answersRef.current];
+      answerUpd[qIndex] = correctedAnswer;
+      setAnswers(answerUpd); answersRef.current = answerUpd;
+
       const fb = res.feedback || "Good effort! Let's keep going.";
       const fupd = [...feedbacksRef.current]; fupd[qIndex] = fb;
       setFeedbacks(fupd); feedbacksRef.current = fupd;
@@ -630,7 +635,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
         const upd = [...answersRef.current];
         upd[qIndex] = pendingAnswer;
         setAnswers(upd); answersRef.current = upd;
-        await apiCall('/api/interview/submit', {
+        const submitRes = await apiCall('/api/interview/submit', {
           method: 'POST',
           body: JSON.stringify({
             interviewId: iId,
@@ -639,6 +644,11 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
             questionIndex: qIndex,
           }),
         });
+        if (submitRes?.answer) {
+          const correctedUpd = [...answersRef.current];
+          correctedUpd[qIndex] = submitRes.answer;
+          setAnswers(correctedUpd); answersRef.current = correctedUpd;
+        }
       }
       const res = await apiCall('/api/interview/complete', {
         method: 'POST',
@@ -826,7 +836,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
           timerRunning={codingTimerRunning}
         />
       ) : (
-        <Card style={{ padding:'1.1rem', background:'rgba(8,8,18,0.8)' }}>
+        <Card style={{ display:'none' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.65rem' }}>
             <span style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1.5px' }}>Your Answer</span>
             {voice.isListening && (
@@ -856,6 +866,14 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
             </div>
           )}
         </Card>
+      )}
+
+      {!isCodingQuestion && prepareCount != null && (
+        <div style={{ display:'flex', justifyContent:'center' }}>
+          <div style={{ padding:'0.55rem 0.9rem', background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:'8px', fontSize:'12px', color:'#60a5fa', display:'flex', alignItems:'center', gap:'0.5rem' }}>
+            Reading time left: {prepareCount}s
+          </div>
+        </div>
       )}
 
       {/* Controls */}
