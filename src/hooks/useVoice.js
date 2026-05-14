@@ -353,7 +353,7 @@ export function useVoice() {
 
     rec.interimResults = true;
 
-    rec.lang = 'en-IN';
+    rec.lang = 'en-US';
 
     rec.maxAlternatives = 1;
 
