@@ -9,6 +9,10 @@ export default function SeoLandingPage({ path }) {
   if (!page) return <Navigate to="/" replace />;
 
   const pageUrl = `${SITE_URL}${page.path}`;
+  const allKeywords = [page.primaryKeyword, ...page.supportingKeywords, ...(page.secondaryKeywords || [])];
+  const relatedPageLinks = (page.relatedPages || [])
+    .map(relatedPath => SEO_PAGES.find(item => item.path === relatedPath))
+    .filter(Boolean);
   const jsonLd = [
     {
       '@context': 'https://schema.org',
@@ -16,7 +20,12 @@ export default function SeoLandingPage({ path }) {
       name: page.title,
       url: pageUrl,
       description: page.description,
+      keywords: allKeywords.join(', '),
       about: page.primaryKeyword,
+      audience: {
+        '@type': 'Audience',
+        audienceType: page.audience,
+      },
       isPartOf: {
         '@type': 'WebSite',
         name: 'AssessArc',
@@ -28,6 +37,17 @@ export default function SeoLandingPage({ path }) {
         url: SITE_URL,
         sameAs: SOCIAL_PROFILE_URLS,
       },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: `Related AssessArc interview practice pages for ${page.primaryKeyword}`,
+      itemListElement: relatedPageLinks.map((relatedPage, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: relatedPage.title,
+        url: `${SITE_URL}${relatedPage.path}`,
+      })),
     },
     {
       '@context': 'https://schema.org',
@@ -66,7 +86,7 @@ export default function SeoLandingPage({ path }) {
       <Helmet>
         <title>{page.metaTitle}</title>
         <meta name="description" content={page.description} />
-        <meta name="keywords" content={[page.primaryKeyword, ...page.supportingKeywords].join(', ')} />
+        <meta name="keywords" content={allKeywords.join(', ')} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={pageUrl} />
         <meta property="og:type" content="website" />
@@ -88,7 +108,7 @@ export default function SeoLandingPage({ path }) {
             <h1>{page.title}</h1>
             <p>{page.description}</p>
             <div className="seo-keywords" aria-label="Related search topics">
-              {page.supportingKeywords.map(keyword => <span key={keyword}>{keyword}</span>)}
+              {[...page.supportingKeywords, ...(page.secondaryKeywords || [])].map(keyword => <span key={keyword}>{keyword}</span>)}
             </div>
             <div className="home-hero-actions">
               <a className="home-primary-btn" href="/?auth=signin">Start free practice</a>
@@ -96,6 +116,8 @@ export default function SeoLandingPage({ path }) {
             </div>
           </div>
           <aside className="seo-hero-panel" aria-label="AssessArc benefits">
+            <span>Search intent</span>
+            <p>{page.searchIntent}</p>
             <span>Best for</span>
             <b>{page.audience}</b>
             <span>Outcome</span>
@@ -138,6 +160,24 @@ export default function SeoLandingPage({ path }) {
             ))}
           </div>
         </section>
+
+        {relatedPageLinks.length > 0 && (
+          <section className="seo-section">
+            <div className="home-section-heading">
+              <span>Related Practice</span>
+              <h2>Continue with role-specific interview pages</h2>
+            </div>
+            <div className="seo-related-grid">
+              {relatedPageLinks.map(relatedPage => (
+                <a className="seo-related-card" href={relatedPage.path} key={relatedPage.path}>
+                  <span>{relatedPage.primaryKeyword}</span>
+                  <h3>{relatedPage.title}</h3>
+                  <p>{relatedPage.description}</p>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section id="faq" className="seo-section home-faq">
           <div className="home-section-heading">

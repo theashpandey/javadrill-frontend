@@ -617,7 +617,8 @@ body::before {
   font-size: 14px;
 }
 .seo-info-card,
-.seo-hero-panel {
+.seo-hero-panel,
+.seo-related-card {
   border-radius: 16px;
   background: linear-gradient(180deg, rgba(20,20,42,0.72), rgba(13,17,31,0.74));
   border: 1px solid rgba(255,255,255,0.08);
@@ -711,6 +712,43 @@ body::before {
   color: var(--text2);
   font-size: 14px;
   line-height: 1.75;
+}
+.seo-related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+.seo-related-card {
+  display: block;
+  padding: 1.1rem;
+  min-height: 220px;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.seo-related-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(125,211,252,0.28);
+  background: linear-gradient(180deg, rgba(24,31,52,0.82), rgba(13,17,31,0.84));
+}
+.seo-related-card span {
+  color: #7dd3fc;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.seo-related-card h3 {
+  margin-top: 0.7rem;
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1.25;
+}
+.seo-related-card p {
+  margin-top: 0.75rem;
+  color: var(--text2);
+  font-size: 13px;
+  line-height: 1.65;
 }
 .seo-faq-static {
   padding: 1rem 1.1rem;
@@ -939,7 +977,8 @@ body::before {
   .home-feature-grid,
   .home-step-grid,
   .home-pricing-grid,
-  .seo-info-grid {
+  .seo-info-grid,
+  .seo-related-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .seo-hero {
@@ -1002,7 +1041,8 @@ body::before {
   .home-feature-grid,
   .home-step-grid,
   .home-pricing-grid,
-  .seo-info-grid {
+  .seo-info-grid,
+  .seo-related-grid {
     grid-template-columns: 1fr;
   }
   .home-section,
@@ -1018,7 +1058,8 @@ body::before {
     line-height: 1.05;
   }
   .seo-hero-panel,
-  .seo-info-card {
+  .seo-info-card,
+  .seo-related-card {
     border-radius: 12px;
   }
   .home-feature-card {
