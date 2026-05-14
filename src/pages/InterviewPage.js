@@ -1035,6 +1035,7 @@ function CodingEditor({ question, code, setCode, language, setLanguage, onSubmit
     { value: 'java', label: 'Java' },
     { value: 'javascript', label: 'JavaScript' },
     { value: 'python', label: 'Python' },
+    { value: 'sql', label: 'SQL' },
     { value: 'cpp', label: 'C++' },
     { value: 'csharp', label: 'C#' },
   ];
