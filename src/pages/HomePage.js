@@ -186,14 +186,10 @@ export default function HomePage() {
     '@graph': [
       {
         '@type': 'Organization',
+        '@id': `${SITE_URL}/#organization`,
         name: 'AssessArc',
         url: SITE_URL,
         sameAs: SOCIAL_PROFILE_URLS,
-      },
-      {
-        '@type': 'WebSite',
-        name: 'AssessArc',
-        url: SITE_URL,
       },
       {
         '@type': 'SoftwareApplication',

@@ -9,6 +9,8 @@
   <meta name="description" content="Practice free AI mock interviews online with voice questions, resume-based prompts, instant feedback, scoring, and analytics for technical, coding, HR, Java, Python, React, DevOps, data science, system design, and manager roles." />
   <meta name="keywords" content="free AI mock interview, AI mock interview, mock interview practice online, AI interview practice, technical interview practice, coding interview practice, interview preparation for freshers, Java interview practice, Python mock interview, React interview practice, DevOps interview practice, system design interview practice, data science mock interview, HR interview practice, resume based interview questions, voice mock interview" />
   <meta name="robots" content="index, follow" />
+  <meta name="application-name" content="AssessArc" />
+  <meta name="apple-mobile-web-app-title" content="AssessArc" />
   <link rel="canonical" href="https://www.assessarc.com/" />
 
   <!-- Open Graph (Facebook, LinkedIn) -->
@@ -28,28 +30,43 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "AssessArc",
-    "url": "https://www.assessarc.com",
-    "description": "AI-powered interview preparation platform with voice mock interviews, resume-based questions, coding practice, instant feedback and performance analysis for technical, HR, Java, Python, React, DevOps, data science, system design and manager roles",
-    "applicationCategory": "EducationApplication",
-    "operatingSystem": "Web",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "INR",
-      "description": "10 free credits on signup"
-    },
-    "provider": {
-      "@type": "Organization",
-      "name": "AssessArc",
-      "url": "https://www.assessarc.com",
-      "sameAs": [
-        "https://www.instagram.com/assessarc/",
-        "https://www.youtube.com/@assessarc",
-        "https://www.linkedin.com/company/assessarc/"
-      ]
-    }
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://www.assessarc.com/#website",
+        "name": "AssessArc",
+        "alternateName": "AssessArc AI Mock Interviews",
+        "url": "https://www.assessarc.com/"
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://www.assessarc.com/#organization",
+        "name": "AssessArc",
+        "url": "https://www.assessarc.com/",
+        "sameAs": [
+          "https://www.instagram.com/assessarc/",
+          "https://www.youtube.com/@assessarc",
+          "https://www.linkedin.com/company/assessarc/"
+        ]
+      },
+      {
+        "@type": "WebApplication",
+        "name": "AssessArc",
+        "url": "https://www.assessarc.com/",
+        "description": "AI-powered interview preparation platform with voice mock interviews, resume-based questions, coding practice, instant feedback and performance analysis for technical, HR, Java, Python, React, DevOps, data science, system design and manager roles",
+        "applicationCategory": "EducationApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "INR",
+          "description": "10 free credits on signup"
+        },
+        "provider": {
+          "@id": "https://www.assessarc.com/#organization"
+        }
+      }
+    ]
   }
   </script>
 
