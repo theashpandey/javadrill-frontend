@@ -353,9 +353,9 @@ export function useVoice() {
 
     rec.interimResults = true;
 
-    rec.lang = 'en-GB';
+    rec.lang = 'en-IN';
 
-    rec.maxAlternatives = 3;
+    rec.maxAlternatives = 1;
 
     let finalText = transcriptRef.current || '';
 
