@@ -5,14 +5,14 @@ export function Button({ children, variant = 'primary', size = 'md', disabled, o
   const base = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
     border: 'none', borderRadius: '10px', fontFamily: 'var(--font-body)',
-    fontWeight: 650, letterSpacing: 0, lineHeight: 1.2, cursor: disabled ? 'not-allowed' : 'pointer',
+    fontWeight: 600, letterSpacing: 0, lineHeight: 1.25, cursor: disabled ? 'not-allowed' : 'pointer',
     transition: 'all 0.2s', opacity: disabled ? 0.4 : 1,
     whiteSpace: 'normal', textAlign: 'center',
   };
   const sizes = {
-    sm: { padding: '0.45rem 1rem', fontSize: '13px' },
-    md: { padding: '0.7rem 1.5rem', fontSize: '14px' },
-    lg: { padding: '0.85rem 2rem', fontSize: '16px' },
+    sm: { padding: '0.45rem 0.95rem', fontSize: '13px' },
+    md: { padding: '0.68rem 1.35rem', fontSize: '14px' },
+    lg: { padding: '0.82rem 1.8rem', fontSize: '15.5px' },
   };
   const variants = {
     primary: { background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: 'white' },
@@ -58,8 +58,8 @@ export function Spinner({ size = 40, color = '#6366f1' }) {
 export function Badge({ children, color = '#6366f1' }) {
   return (
     <span style={{
-      padding: '2px 8px', borderRadius: '6px', fontSize: '11px',
-      fontFamily: 'var(--font-body)', fontWeight: 700, letterSpacing: '0.01em',
+      padding: '2px 8px', borderRadius: '6px', fontSize: '11.5px',
+      fontFamily: 'var(--font-body)', fontWeight: 600, letterSpacing: '0',
       background: color + '22', color, border: `1px solid ${color}44`,
     }}>
       {children}
@@ -110,7 +110,7 @@ export function ScoreRing({ score, size = 80 }) {
         strokeDasharray={circ} strokeDashoffset={offset}
         strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease' }} />
       <text x={size/2} y={size/2} textAnchor="middle" dominantBaseline="central"
-        fill={color} fontSize="16" fontWeight="700" fontFamily="var(--font-display)"
+        fill={color} fontSize="15" fontWeight="650" fontFamily="var(--font-display)"
         style={{ transform: 'rotate(90deg)', transformOrigin: `${size/2}px ${size/2}px` }}>
         {score}
       </text>
@@ -123,8 +123,8 @@ export function EmptyState({ icon, title, desc }) {
   return (
     <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text3)' }}>
       <div style={{ fontSize: '48px', marginBottom: '1rem' }}>{icon}</div>
-      <div style={{ fontSize: '16px', color: 'var(--text2)', marginBottom: '0.5rem', fontWeight: 500 }}>{title}</div>
-      <div style={{ fontSize: '13px' }}>{desc}</div>
+      <div style={{ fontSize: '15.5px', color: 'var(--text2)', marginBottom: '0.5rem', fontWeight: 600 }}>{title}</div>
+      <div style={{ fontSize: '13.5px', lineHeight: 1.55 }}>{desc}</div>
     </div>
   );
 }

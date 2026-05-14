@@ -1,5 +1,5 @@
 /* ── AssessArc Global Styles ── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=Manrope:wght@600;700;800&family=DM+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;600&display=swap');
 
 :root {
   --bg: #080810;
@@ -21,7 +21,7 @@
   --text2: #94a3b8;
   --text3: #4b5563;
 
-  --font-display: 'Manrope', 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'DM Mono', 'SFMono-Regular', Consolas, monospace;
 
@@ -40,8 +40,8 @@ body {
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
-  font-size: 14.5px;
-  line-height: 1.55;
+  font-size: 15px;
+  line-height: 1.6;
   font-weight: 400;
   letter-spacing: 0;
   text-rendering: optimizeLegibility;
@@ -51,14 +51,14 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
-  font-weight: 750;
-  line-height: 1.12;
+  font-weight: 700;
+  line-height: 1.16;
   letter-spacing: 0;
   color: var(--text);
 }
 
 p {
-  line-height: 1.7;
+  line-height: 1.68;
 }
 
 /* Scrollbar */
@@ -84,8 +84,8 @@ input, textarea, select {
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   width: 100%;
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: 14.5px;
+  line-height: 1.5;
   font-weight: 450;
 }
 input:focus, textarea:focus {
@@ -169,7 +169,7 @@ body::before {
 /* Mobile */
 @media (max-width: 768px) {
   :root { --radius: 12px; --radius-sm: 8px; }
-  h1 { font-size: 2rem !important; }
+  h1 { font-size: 2rem; }
 }
 
 /* Home page */
@@ -200,19 +200,19 @@ body::before {
   align-items: center;
   gap: 0.65rem;
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 750;
   letter-spacing: 0;
 }
 .home-brand span span,
 .brand-logo-text span {}
 .brand-logo {
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 750;
   letter-spacing: 0;
   color: var(--text);
 }
 .brand-logo-text {
-  font-weight: 800;
+  font-weight: 750;
   letter-spacing: -0.01em;
 }
 .brand-logo-mark {
@@ -236,7 +236,7 @@ body::before {
   align-items: center;
   gap: 1.25rem;
   color: var(--text2);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
 }
 .home-nav-links a:hover { color: var(--text); }
@@ -251,7 +251,7 @@ body::before {
   padding: 0.75rem 1.15rem;
   border-radius: 10px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 650;
   white-space: nowrap;
 }
 .home-nav-cta,
@@ -280,26 +280,26 @@ body::before {
 .home-contact-copy span {
   display: inline-flex;
   color: #7dd3fc;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 .home-hero h1 {
   margin-top: 1rem;
   font-family: var(--font-display);
-  max-width: 760px;
-  font-size: clamp(44px, 7vw, 78px);
-  line-height: 1.02;
+  max-width: 740px;
+  font-size: clamp(42px, 6.2vw, 66px);
+  line-height: 1.06;
   letter-spacing: 0;
-  font-weight: 800;
+  font-weight: 750;
 }
 .home-hero-subtitle {
   max-width: 620px;
   margin-top: 1.4rem;
   color: var(--text2);
-  font-size: clamp(16px, 2vw, 20px);
-  line-height: 1.68;
+  font-size: clamp(16px, 1.8vw, 18px);
+  line-height: 1.72;
   font-weight: 450;
 }
 .home-error {
@@ -325,7 +325,7 @@ body::before {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
   color: var(--text2);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 .home-product-preview {
   border-radius: 22px;
@@ -355,7 +355,7 @@ body::before {
 .preview-topbar strong {
   margin-left: 0.5rem;
   color: var(--text2);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 .preview-interviewer {
   display: grid;
@@ -372,19 +372,20 @@ body::before {
   justify-content: center;
   background: linear-gradient(135deg, #6366f1, #ec4899);
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 750;
 }
 .preview-label {
   color: #10b981;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   margin-bottom: 0.45rem;
+  font-weight: 650;
 }
 .preview-interviewer p,
 .preview-feedback p {
   color: var(--text2);
-  line-height: 1.65;
+  line-height: 1.68;
   font-size: 14px;
 }
 .preview-wave {
@@ -425,7 +426,8 @@ body::before {
 .preview-grid b {
   color: #7dd3fc;
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 23px;
+  font-weight: 700;
 }
 .preview-feedback {
   margin: 0 1.4rem 1.4rem;
@@ -447,17 +449,17 @@ body::before {
 .home-contact-copy h2 {
   margin-top: 0.55rem;
   font-family: var(--font-display);
-  font-size: clamp(30px, 5vw, 52px);
-  line-height: 1.08;
+  font-size: clamp(29px, 4.3vw, 44px);
+  line-height: 1.12;
   letter-spacing: 0;
-  font-weight: 800;
+  font-weight: 750;
 }
 .home-section-heading p,
 .home-contact-copy p {
   margin-top: 0.8rem;
   color: var(--text2);
-  line-height: 1.7;
-  font-size: 15px;
+  line-height: 1.68;
+  font-size: 15.5px;
   font-weight: 450;
 }
 .home-feature-grid {
@@ -493,30 +495,32 @@ body::before {
   padding: 0 0.75rem;
   color: #7dd3fc;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.02em;
 }
 .home-feature-stat {
   margin-top: 1.1rem;
   color: var(--primary-light);
-  font-size: 11px;
+  font-size: 11.5px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
+  font-weight: 650;
 }
 .home-feature-card h3,
 .home-step-card h3,
 .home-plan-card h3 {
   margin-top: 0.45rem;
-  font-size: 18px;
-  font-weight: 750;
+  font-size: 17.5px;
+  font-weight: 650;
+  line-height: 1.25;
 }
 .home-feature-card p,
 .home-step-card p,
 .home-plan-card p {
   margin-top: 0.65rem;
   color: var(--text2);
-  line-height: 1.68;
-  font-size: 13.5px;
+  line-height: 1.65;
+  font-size: 14px;
   font-weight: 450;
 }
 .home-workflow {
@@ -564,8 +568,8 @@ body::before {
   margin-top: 0.7rem;
   font-family: var(--font-display);
   color: var(--text);
-  font-size: 38px;
-  font-weight: 800;
+  font-size: 36px;
+  font-weight: 750;
   letter-spacing: -0.01em;
 }
 .home-plan-card ul {
@@ -576,7 +580,7 @@ body::before {
 }
 .home-plan-card li {
   color: var(--text2);
-  font-size: 13px;
+  font-size: 13.5px;
 }
 .home-plan-card li::before {
   content: "+";
@@ -604,6 +608,7 @@ body::before {
   gap: 1rem;
   text-align: left;
   font-weight: 600;
+  font-size: 14.5px;
 }
 .home-faq-item b {
   color: #7dd3fc;
@@ -613,8 +618,8 @@ body::before {
   border-top: 1px solid rgba(255,255,255,0.06);
   padding: 1rem 1.1rem;
   color: var(--text2);
-  line-height: 1.7;
-  font-size: 14px;
+  line-height: 1.68;
+  font-size: 14.5px;
 }
 .seo-info-card,
 .seo-hero-panel,
@@ -641,19 +646,19 @@ body::before {
 }
 .seo-hero h1 {
   margin-top: 1rem;
-  max-width: 820px;
+  max-width: 800px;
   font-family: var(--font-display);
-  font-size: clamp(38px, 6vw, 68px);
-  line-height: 1.04;
+  font-size: clamp(38px, 5.2vw, 56px);
+  line-height: 1.08;
   letter-spacing: 0;
-  font-weight: 800;
+  font-weight: 750;
 }
 .seo-hero p {
   max-width: 720px;
   margin-top: 1.2rem;
   color: var(--text2);
-  font-size: clamp(16px, 2vw, 19px);
-  line-height: 1.75;
+  font-size: clamp(16px, 1.7vw, 18px);
+  line-height: 1.72;
 }
 .seo-keywords {
   margin-top: 1.25rem;
@@ -667,7 +672,8 @@ body::before {
   background: rgba(125,211,252,0.08);
   border: 1px solid rgba(125,211,252,0.15);
   color: #7dd3fc;
-  font-size: 12px;
+  font-size: 12.5px;
+  font-weight: 500;
 }
 .seo-hero-panel {
   padding: 1.25rem;
@@ -676,19 +682,20 @@ body::before {
 }
 .seo-hero-panel span {
   color: #7dd3fc;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 .seo-hero-panel b {
   color: var(--text);
-  line-height: 1.55;
+  line-height: 1.58;
+  font-weight: 600;
 }
 .seo-hero-panel p {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.7;
+  font-size: 14.5px;
+  line-height: 1.66;
 }
 .seo-section {
   padding: clamp(3rem, 7vw, 5rem) 0;
@@ -704,14 +711,15 @@ body::before {
 }
 .seo-info-card h3 {
   font-family: var(--font-display);
-  font-size: 20px;
-  line-height: 1.2;
+  font-size: 19px;
+  line-height: 1.25;
+  font-weight: 650;
 }
 .seo-info-card p {
   margin-top: 0.8rem;
   color: var(--text2);
-  font-size: 14px;
-  line-height: 1.75;
+  font-size: 14.5px;
+  line-height: 1.68;
 }
 .seo-related-grid {
   display: grid;
@@ -733,28 +741,31 @@ body::before {
 }
 .seo-related-card span {
   color: #7dd3fc;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 .seo-related-card h3 {
   margin-top: 0.7rem;
   font-family: var(--font-display);
-  font-size: 18px;
-  line-height: 1.25;
+  font-size: 17px;
+  line-height: 1.28;
+  font-weight: 650;
 }
 .seo-related-card p {
   margin-top: 0.75rem;
   color: var(--text2);
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 13.5px;
+  line-height: 1.62;
 }
 .seo-faq-static {
   padding: 1rem 1.1rem;
 }
 .seo-faq-static h3 {
   font-size: 16px;
+  line-height: 1.3;
+  font-weight: 650;
 }
 .seo-faq-static p {
   margin-top: 0.7rem;
@@ -793,7 +804,7 @@ body::before {
   gap: 1rem;
   flex-wrap: wrap;
   color: var(--text3);
-  font-size: 13px;
+  font-size: 13.5px;
 }
 
 .auth-modal-shell {
@@ -846,14 +857,15 @@ body::before {
 .auth-modal-brand b {
   display: block;
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 21px;
   letter-spacing: 0;
+  font-weight: 700;
 }
 .auth-modal-brand p {
   margin-top: 0.25rem;
   color: var(--text2);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 .auth-switch {
   margin-top: 1.2rem;
@@ -870,7 +882,8 @@ body::before {
   border-radius: 9px;
   background: transparent;
   color: var(--text2);
-  font-weight: 700;
+  font-weight: 650;
+  font-size: 14px;
 }
 .auth-switch button.active {
   background: linear-gradient(135deg, rgba(99,102,241,0.95), rgba(129,140,248,0.95));
@@ -888,8 +901,8 @@ body::before {
 }
 .auth-form label span {
   color: var(--text2);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 600;
 }
 .auth-error {
   margin-top: 0;
@@ -906,7 +919,7 @@ body::before {
   margin: 1.05rem 0;
   text-align: center;
   color: var(--text3);
-  font-size: 12px;
+  font-size: 12.5px;
 }
 .auth-divider::before {
   content: "";
@@ -933,7 +946,8 @@ body::before {
   background: rgba(255,255,255,0.05);
   color: var(--text);
   border: 1px solid rgba(255,255,255,0.1);
-  font-weight: 700;
+  font-weight: 650;
+  font-size: 14.5px;
 }
 .auth-google-btn span {
   width: 22px;
@@ -953,7 +967,8 @@ body::before {
 .dashboard-content-frame h3 {
   font-family: var(--font-display) !important;
   letter-spacing: 0 !important;
-  font-weight: 750 !important;
+  font-weight: 700 !important;
+  line-height: 1.18 !important;
 }
 
 .dashboard-content-frame p,
@@ -964,6 +979,21 @@ body::before {
 .dashboard-content-frame textarea,
 .dashboard-content-frame select {
   font-family: var(--font-body);
+}
+.dashboard-content-frame h1 {
+  font-size: clamp(26px, 3.4vw, 34px) !important;
+}
+.dashboard-content-frame h2 {
+  font-size: clamp(22px, 2.6vw, 28px) !important;
+}
+.dashboard-content-frame h3 {
+  font-size: clamp(17px, 2vw, 20px) !important;
+}
+.dashboard-content-frame p,
+.dashboard-content-frame li,
+.dashboard-content-frame td {
+  font-size: 14.5px;
+  line-height: 1.62;
 }
 
 @media (max-width: 980px) {
@@ -1000,9 +1030,9 @@ body::before {
     gap: 1.4rem;
   }
   .home-hero h1 {
-    max-width: 360px;
-    font-size: clamp(34px, 11.4vw, 44px) !important;
-    line-height: 1.02;
+    max-width: 380px;
+    font-size: clamp(32px, 10.4vw, 42px) !important;
+    line-height: 1.08;
     margin-top: 0.8rem;
   }
   .home-hero-subtitle {
@@ -1054,8 +1084,8 @@ body::before {
     padding: 2rem 0 2.5rem;
   }
   .seo-hero h1 {
-    font-size: clamp(34px, 11.4vw, 44px) !important;
-    line-height: 1.05;
+    font-size: clamp(32px, 10.4vw, 42px) !important;
+    line-height: 1.09;
   }
   .seo-hero-panel,
   .seo-info-card,

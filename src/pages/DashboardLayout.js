@@ -52,28 +52,28 @@ export default function DashboardLayout({
             </div>
           )}
           <div style={{ overflow:'hidden', flex:1 }}>
-            <div style={{ fontSize:'13px', fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.name}</div>
-            <div style={{ fontSize:'10px', color:'var(--text3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.email}</div>
+            <div style={{ fontSize:'13.5px', fontWeight:600, lineHeight:1.25, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.name}</div>
+            <div style={{ fontSize:'11px', color:'var(--text3)', lineHeight:1.35, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{user?.email}</div>
           </div>
         </div>
         {/* Wallet chip */}
         {showWallet && <div style={{ padding:'0.45rem 0.8rem', background:creditColor+'12', border:`1px solid ${creditColor}28`, borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <span style={{ fontSize:'11px', color:'var(--text3)' }}>💰 Credits</span>
+          <span style={{ fontSize:'11.5px', color:'var(--text3)' }}>💰 Credits</span>
           <span style={{ fontSize:'14px', fontWeight:700, color:creditColor, fontFamily:'var(--font-mono)' }}>{wallet}</span>
         </div>}
-        {badgeLabel && <div style={{ padding:'0.45rem 0.8rem', background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.22)', borderRadius:'8px', color:'#818cf8', fontSize:'11px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1px' }}>{badgeLabel}</div>}
+        {badgeLabel && <div style={{ padding:'0.45rem 0.8rem', background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.22)', borderRadius:'8px', color:'#818cf8', fontSize:'11.5px', fontWeight:650, textTransform:'uppercase', letterSpacing:'0.07em' }}>{badgeLabel}</div>}
       </div>
 
       {/* Nav links */}
       <nav style={{ padding:'0.75rem 0.65rem', flex:1, overflowY:'auto' }}>
-        <div style={{ fontSize:'9px', color:'var(--text3)', fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', padding:'0 0.75rem', marginBottom:'0.5rem' }}>{sectionLabel}</div>
+        <div style={{ fontSize:'10px', color:'var(--text3)', fontWeight:650, letterSpacing:'0.08em', textTransform:'uppercase', padding:'0 0.75rem', marginBottom:'0.5rem' }}>{sectionLabel}</div>
         {navItems.map(item => (
           <NavLink key={item.path} to={`${basePath}/${item.path}`}
             onClick={() => setMobileOpen(false)}
             style={({ isActive }) => ({
               display:'flex', alignItems:'center', gap:'0.7rem',
               padding:'0.65rem 0.85rem', borderRadius:'10px', marginBottom:'2px',
-              fontSize:'13.5px', fontWeight:500, transition:'all 0.2s',
+              fontSize:'13.5px', fontWeight:500, lineHeight:1.25, transition:'all 0.2s',
               background:isActive?'rgba(99,102,241,0.14)':'transparent',
               color:isActive?'#818cf8':'var(--text2)',
               border:isActive?'1px solid rgba(99,102,241,0.22)':'1px solid transparent',
@@ -82,7 +82,7 @@ export default function DashboardLayout({
             <span style={{ fontSize:'16px', flexShrink:0, width:22, textAlign:'center' }}>{item.icon}</span>
             <div>
               <div style={{ lineHeight:1.2 }}>{item.label}</div>
-              <div style={{ fontSize:'10px', color:'var(--text3)', marginTop:'1px' }}>{item.desc}</div>
+              <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:'2px', lineHeight:1.25 }}>{item.desc}</div>
             </div>
           </NavLink>
         ))}
@@ -93,7 +93,7 @@ export default function DashboardLayout({
         {showFeedbackButton && <button onClick={() => setShowFeedback(true)} style={{
           width:'100%', padding:'0.55rem 0.85rem', borderRadius:'9px', marginBottom:'0.4rem',
           background:'rgba(99,102,241,0.08)', border:'1px solid rgba(99,102,241,0.15)',
-          color:'#818cf8', fontSize:'12.5px', cursor:'pointer', transition:'all 0.2s',
+          color:'#818cf8', fontSize:'13px', fontWeight:600, cursor:'pointer', transition:'all 0.2s',
           display:'flex', alignItems:'center', gap:'0.5rem', justifyContent:'center',
         }}
           onMouseOver={e => e.currentTarget.style.background='rgba(99,102,241,0.16)'}
@@ -103,7 +103,7 @@ export default function DashboardLayout({
         {showWallet && <button onClick={async () => { await signIn(); await refreshProfile(); }} style={{
           width:'100%', padding:'0.5rem', borderRadius:'9px', marginBottom:'0.4rem',
           background:'rgba(99,102,241,0.08)', border:'1px solid rgba(99,102,241,0.15)',
-          color:'#818cf8', fontSize:'12.5px', cursor:'pointer',
+          color:'#818cf8', fontSize:'13px', fontWeight:600, cursor:'pointer',
           display:'flex', alignItems:'center', gap:'0.5rem', justifyContent:'center',
         }}>
           Link Google
@@ -111,7 +111,7 @@ export default function DashboardLayout({
         <button onClick={handleSignOut} style={{
           width:'100%', padding:'0.5rem', borderRadius:'9px',
           background:'transparent', border:'1px solid rgba(255,255,255,0.05)',
-          color:'var(--text3)', fontSize:'12.5px', cursor:'pointer', transition:'all 0.2s',
+          color:'var(--text3)', fontSize:'13px', fontWeight:600, cursor:'pointer', transition:'all 0.2s',
           display:'flex', alignItems:'center', gap:'0.5rem', justifyContent:'center',
         }}
           onMouseOver={e => { e.currentTarget.style.borderColor='rgba(239,68,68,0.3)'; e.currentTarget.style.color='#ef4444'; }}
