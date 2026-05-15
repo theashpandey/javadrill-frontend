@@ -117,6 +117,38 @@ export default function AdminUsersPage() {
               </table>
             </div>
           </Card>
+
+          <Card style={{ padding:'1.25rem', overflow:'hidden' }}>
+            <h3 style={{ fontSize:'15px', fontWeight:700, marginBottom:'0.35rem' }}>Recent Answer Audit</h3>
+            <p style={{ color:'var(--text3)', fontSize:'12px', marginBottom:'1rem' }}>
+              Audio transcription, browser fallback, and final corrected answer traces. Audio files are not stored.
+            </p>
+            <div style={{ display:'grid', gap:'0.85rem' }}>
+              {(data?.recentAnswerAudits || []).length === 0 && (
+                <div style={{ color:'var(--text3)', fontSize:'13px' }}>No answer trace data yet.</div>
+              )}
+              {(data?.recentAnswerAudits || []).map((item, idx) => (
+                <div key={`${item.interviewId}-${item.questionIndex}-${idx}`} style={{ padding:'0.85rem', border:'1px solid rgba(255,255,255,0.07)', borderRadius:8, background:'rgba(20,20,42,0.45)' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', gap:'0.75rem', flexWrap:'wrap', marginBottom:'0.65rem' }}>
+                    <div>
+                      <div style={{ color:'var(--text)', fontSize:'13px', fontWeight:700 }}>{item.userName || 'User'} <span style={{ color:'var(--text3)', fontWeight:500 }}>{item.userEmail}</span></div>
+                      <div style={{ color:'var(--text3)', fontSize:'11px', marginTop:3 }}>Interview {shortId(item.interviewId)} · Q{(item.questionIndex || 0) + 1} · corrected {item.correctedAt || '-'}</div>
+                    </div>
+                    <div style={{ display:'flex', gap:'0.4rem', alignItems:'flex-start', flexWrap:'wrap' }}>
+                      <Badge color={item.source === 'audio_transcription' ? '#10b981' : item.source === 'browser_fallback' ? '#f59e0b' : '#64748b'}>{label(item.source)}</Badge>
+                      <Badge color={item.transcriptionStatus === 'success' ? '#22c55e' : item.transcriptionStatus === 'failed' ? '#ef4444' : '#64748b'}>{label(item.transcriptionStatus)}</Badge>
+                      {item.audioBytes > 0 && <Badge color="#38bdf8">{formatBytes(item.audioBytes)}</Badge>}
+                    </div>
+                  </div>
+                  <div style={{ color:'#93c5fd', fontSize:'12px', lineHeight:1.6, marginBottom:'0.6rem' }}>{truncate(item.question, 220)}</div>
+                  <AuditText label="Browser raw" value={item.browserTranscript} color="#fbbf24" />
+                  <AuditText label="Audio transcript" value={item.audioTranscript} color="#38bdf8" />
+                  <AuditText label="Final corrected" value={item.finalTranscript} color="#86efac" />
+                  {item.error && <AuditText label="Error" value={item.error} color="#f87171" />}
+                </div>
+              ))}
+            </div>
+          </Card>
         </>
       )}
 
@@ -159,6 +191,31 @@ function Tip({ active, payload, label }) {
 
 function label(value) {
   return String(value || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+}
+
+function AuditText({ label, value, color }) {
+  if (!value) return null;
+  return (
+    <div style={{ marginTop:'0.45rem', fontSize:'12px', lineHeight:1.6 }}>
+      <div style={{ color, fontSize:'10px', fontWeight:800, letterSpacing:'0.8px', textTransform:'uppercase', marginBottom:'0.15rem' }}>{label}</div>
+      <div style={{ color:'var(--text2)', whiteSpace:'pre-wrap' }}>{truncate(value, 600)}</div>
+    </div>
+  );
+}
+
+function truncate(value, max) {
+  const text = String(value || '');
+  return text.length <= max ? text : `${text.slice(0, max)}...`;
+}
+
+function shortId(value) {
+  return String(value || '').slice(0, 8);
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const labelStyle = { display:'grid', gap:'0.35rem', color:'var(--text3)', fontSize:'11px', fontWeight:700 };

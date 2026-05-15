@@ -5,7 +5,7 @@ import { Card, Badge, ScoreRing, EmptyState, Spinner, ProgressBar } from '../com
 import { CAT_COLORS, formatCategoryLabel } from '../utils/gemini';
 
 export default function HistoryPage() {
-  const { history, fetchHistory } = useApp();
+  const { history, fetchHistory, user } = useApp();
   const [loading, setLoading]     = useState(false);
   const [selected, setSelected]   = useState(null);   // full detail object
   const [detailLoading, setDetailLoading] = useState(false);
@@ -180,6 +180,26 @@ function CodeBlock({ children }) {
       padding: '0.65rem',
     }}>{children}</pre>
   );
+}
+
+function TraceLine({ label, value, tone = 'var(--text2)' }) {
+  if (!value) return null;
+  return (
+    <div style={{ marginTop:'0.35rem' }}>
+      <span style={{ color:'#93c5fd', fontWeight:700 }}>{label}: </span>
+      <span style={{ color:tone, whiteSpace:'pre-wrap' }}>{value}</span>
+    </div>
+  );
+}
+
+function auditLabel(value) {
+  return String(value || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function CodingProblemReview({ question }) {
@@ -373,6 +393,20 @@ function DetailView({ item, onBack }) {
                   <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.75, padding:'0.75rem', background:'rgba(20,20,42,0.5)', borderRadius:'8px', marginBottom:'0.5rem', borderLeft:'3px solid rgba(148,163,184,0.25)' }}>
                     <div style={{ fontSize:'10px', color:'var(--text3)', marginBottom:'0.35rem', textTransform:'uppercase', letterSpacing:'1px' }}>Your Answer</div>
                     {q.answer}
+                  </div>
+                )}
+                {user?.isAdmin && q.answerTrace && (
+                  <div style={{ fontSize:'12px', color:'var(--text2)', lineHeight:1.65, padding:'0.75rem', background:'rgba(59,130,246,0.05)', borderRadius:'8px', marginBottom:'0.5rem', borderLeft:'3px solid rgba(59,130,246,0.35)' }}>
+                    <div style={{ display:'flex', gap:'0.4rem', alignItems:'center', flexWrap:'wrap', marginBottom:'0.5rem' }}>
+                      <span style={{ fontSize:'10px', color:'#60a5fa', textTransform:'uppercase', letterSpacing:'1px', fontWeight:800 }}>Answer Audit</span>
+                      <Badge color={q.answerTrace.source === 'audio_transcription' ? '#10b981' : q.answerTrace.source === 'browser_fallback' ? '#f59e0b' : '#64748b'}>{auditLabel(q.answerTrace.source)}</Badge>
+                      <Badge color={q.answerTrace.transcriptionStatus === 'success' ? '#22c55e' : q.answerTrace.transcriptionStatus === 'failed' ? '#ef4444' : '#64748b'}>{auditLabel(q.answerTrace.transcriptionStatus)}</Badge>
+                      {q.answerTrace.audioBytes > 0 && <Badge color="#38bdf8">{formatBytes(q.answerTrace.audioBytes)}</Badge>}
+                    </div>
+                    <TraceLine label="Browser raw" value={q.answerTrace.browserTranscript} />
+                    <TraceLine label="Audio transcript" value={q.answerTrace.audioTranscript} />
+                    <TraceLine label="Final corrected" value={q.answerTrace.finalTranscript} />
+                    <TraceLine label="Error" value={q.answerTrace.error} tone="#f87171" />
                   </div>
                 )}
                 {q.feedback && (
