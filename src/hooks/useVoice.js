@@ -2,40 +2,47 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 
 export function useVoice() {
 
+  // =========================
+  // STATE
+  // =========================
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
 
+  // =========================
+  // REFS
+  // =========================
   const recognitionRef = useRef(null);
+
   const synthRef = useRef(window.speechSynthesis);
+
   const bestVoiceRef = useRef(null);
 
   const chunkIndexRef = useRef(0);
   const chunksRef = useRef([]);
 
   const abortedRef = useRef(false);
+
   const onEndCallbackRef = useRef(null);
 
+  const speechFrameRef = useRef(null);
+  const pendingSpeechRef = useRef(null);
+
+  const restartCountRef = useRef(0);
   const restartTimeoutRef = useRef(null);
+
   const speakingTimeoutRef = useRef(null);
+
+  const lastFinalRef = useRef('');
 
   const intentionalStopRef = useRef(false);
 
   const transcriptRef = useRef('');
 
-  const pendingUpdateRef = useRef(null);
-  const flushScheduledRef = useRef(false);
-
-  // ✅ MOBILE DETECTION
-  const isMobileRef = useRef(
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-  );
-
-  // ─────────────────────────────────────────────────────────────
-  // NORMALIZE SPEECH
-  // ─────────────────────────────────────────────────────────────
-
+  // =========================
+  // CLEAN TEXT FOR TTS
+  // =========================
   const normalizeForSpeech = useCallback((value) => {
     return String(value || '')
       .replace(/```[\s\S]*?```/g, ' code block ')
@@ -48,10 +55,9 @@ export function useVoice() {
       .trim();
   }, []);
 
-  // ─────────────────────────────────────────────────────────────
+  // =========================
   // PICK BEST VOICE
-  // ─────────────────────────────────────────────────────────────
-
+  // =========================
   const pickBestVoice = useCallback(() => {
 
     const voices = synthRef.current.getVoices();
@@ -60,6 +66,7 @@ export function useVoice() {
 
     const preferredPatterns = [
       'Microsoft Heera',
+      'Google applied system english (india) female',
       'Neerja',
       'Google India',
       'Microsoft Aria Online (Natural)',
@@ -68,7 +75,7 @@ export function useVoice() {
       'Samantha',
       'Karen',
       'Moira',
-      'Tessa',
+      'Tessa'
     ];
 
     for (const pattern of preferredPatterns) {
@@ -90,10 +97,9 @@ export function useVoice() {
 
   }, []);
 
-  // ─────────────────────────────────────────────────────────────
-  // INIT
-  // ─────────────────────────────────────────────────────────────
-
+  // =========================
+  // INIT VOICES
+  // =========================
   useEffect(() => {
 
     synthRef.current.onvoiceschanged = pickBestVoice;
@@ -105,46 +111,53 @@ export function useVoice() {
       synthRef.current.cancel();
 
       clearTimeout(restartTimeoutRef.current);
+
       clearTimeout(speakingTimeoutRef.current);
 
+      if (speechFrameRef.current) {
+        cancelAnimationFrame(speechFrameRef.current);
+      }
     };
 
   }, [pickBestVoice]);
 
-  // ─────────────────────────────────────────────────────────────
-  // VISIBILITY RECOVERY
-  // KEEPING FOR PC SUPPORT
-  // ─────────────────────────────────────────────────────────────
-
+  // =========================
+  // TAB VISIBILITY RECOVERY
+  // =========================
   useEffect(() => {
 
     const handleVisibility = () => {
-
-      // ✅ DON'T FORCE RESTART ON MOBILE
-      if (isMobileRef.current) return;
 
       if (
         document.visibilityState === 'visible' &&
         isListening &&
         recognitionRef.current
       ) {
+
         try {
           recognitionRef.current.start();
         } catch {}
+
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibility);
+    document.addEventListener(
+      'visibilitychange',
+      handleVisibility
+    );
 
-    return () =>
-      document.removeEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener(
+        'visibilitychange',
+        handleVisibility
+      );
+    };
 
   }, [isListening]);
 
-  // ─────────────────────────────────────────────────────────────
+  // =========================
   // SPEAK
-  // ─────────────────────────────────────────────────────────────
-
+  // =========================
   const speak = useCallback((text, onEnd) => {
 
     synthRef.current.cancel();
@@ -158,8 +171,11 @@ export function useVoice() {
     const spokenText = normalizeForSpeech(text);
 
     if (!spokenText) {
+
       setIsSpeaking(false);
+
       onEndCallbackRef.current?.();
+
       return;
     }
 
@@ -217,9 +233,15 @@ export function useVoice() {
       utt.lang = bestVoiceRef.current?.lang || 'en-IN';
 
       utt.onend = () => {
+
         setTimeout(() => {
-          if (!abortedRef.current) speakChunk();
+
+          if (!abortedRef.current) {
+            speakChunk();
+          }
+
         }, 120);
+
       };
 
       utt.onerror = (e) => {
@@ -227,12 +249,14 @@ export function useVoice() {
         if (
           e.error === 'interrupted' ||
           e.error === 'canceled'
-        ) {
-          return;
-        }
+        ) return;
 
         setTimeout(() => {
-          if (!abortedRef.current) speakChunk();
+
+          if (!abortedRef.current) {
+            speakChunk();
+          }
+
         }, 80);
       };
 
@@ -248,17 +272,15 @@ export function useVoice() {
         }
 
       }, 400);
-
     };
 
     speakChunk();
 
   }, [normalizeForSpeech]);
 
-  // ─────────────────────────────────────────────────────────────
+  // =========================
   // STOP SPEAKING
-  // ─────────────────────────────────────────────────────────────
-
+  // =========================
   const stopSpeaking = useCallback(() => {
 
     abortedRef.current = true;
@@ -271,10 +293,9 @@ export function useVoice() {
 
   }, []);
 
-  // ─────────────────────────────────────────────────────────────
+  // =========================
   // START LISTENING
-  // ─────────────────────────────────────────────────────────────
-
+  // =========================
   const startListening = useCallback(async (onUpdate) => {
 
     const SRClass =
@@ -290,17 +311,11 @@ export function useVoice() {
       return () => {};
     }
 
-    // ✅ HTTPS CHECK
-    if (
-      location.protocol !== 'https:' &&
-      location.hostname !== 'localhost'
-    ) {
-      alert('Microphone requires HTTPS');
-      return () => {};
-    }
-
     intentionalStopRef.current = false;
 
+    // =========================
+    // MIC PRE-WARM
+    // =========================
     try {
 
       await navigator.mediaDevices.getUserMedia({
@@ -308,318 +323,277 @@ export function useVoice() {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-        },
+        }
       });
 
-    } catch {
+    } catch (err) {
 
       alert('Microphone access denied.');
 
       return () => {};
     }
 
+    // =========================
     // CLEAN OLD INSTANCE
-
+    // =========================
     if (recognitionRef.current) {
 
       try {
 
-        recognitionRef.current.onresult = null;
-        recognitionRef.current.onerror = null;
         recognitionRef.current.onend = null;
 
         recognitionRef.current.abort();
 
       } catch {}
-
-      recognitionRef.current = null;
     }
+
+    const rec = new SRClass();
+
+    rec.continuous = true;
+
+    rec.interimResults = true;
+
+    rec.lang = 'en-IN';
+
+    rec.maxAlternatives = 1;
 
     let finalText = transcriptRef.current || '';
 
-    // ─────────────────────────────────────────────
-    // FLUSH QUEUE
-    // ─────────────────────────────────────────────
+    // =========================
+    // UI UPDATE THROTTLE
+    // =========================
+    const publishSpeechUpdate = (payload) => {
 
-    const scheduleFlush = (payload) => {
+      pendingSpeechRef.current = payload;
 
-      pendingUpdateRef.current = payload;
+      if (speechFrameRef.current) return;
 
-      if (flushScheduledRef.current) return;
+      speechFrameRef.current =
+        requestAnimationFrame(() => {
 
-      flushScheduledRef.current = true;
+          speechFrameRef.current = null;
 
-      Promise.resolve().then(() => {
+          const latest =
+            pendingSpeechRef.current;
 
-        flushScheduledRef.current = false;
+          pendingSpeechRef.current = null;
 
-        const latest = pendingUpdateRef.current;
+          if (!latest) return;
 
-        pendingUpdateRef.current = null;
+          setIsUserSpeaking(
+            latest.isUserSpeaking
+          );
 
-        if (!latest) return;
+          setTranscript(latest.display);
 
-        setIsUserSpeaking(latest.isUserSpeaking);
+          onUpdate?.(
+            latest.display,
+            latest.finalText,
+            latest.meta
+          );
 
-        setTranscript(latest.display);
+          clearTimeout(
+            speakingTimeoutRef.current
+          );
 
-        onUpdate?.(
-          latest.display,
-          latest.finalText,
-          latest.meta
-        );
+          if (!latest.hasInterim) {
 
-        clearTimeout(speakingTimeoutRef.current);
+            speakingTimeoutRef.current =
+              setTimeout(() => {
 
-        if (!latest.hasInterim) {
+                setIsUserSpeaking(false);
 
-          speakingTimeoutRef.current = setTimeout(() => {
-            setIsUserSpeaking(false);
-          }, 350);
+              }, 350);
+          }
+        });
+    };
+
+    let lastDisplay = '';
+
+    let lastUserSpeaking = false;
+
+    // =========================
+    // RESULT
+    // =========================
+    rec.onresult = (e) => {
+
+      restartCountRef.current = 0;
+
+      let interim = '';
+
+      let heardSpeech = false;
+
+      for (
+        let i = e.resultIndex;
+        i < e.results.length;
+        i++
+      ) {
+
+        const piece =
+          e.results[i][0].transcript || '';
+
+        if (piece.trim()) {
+          heardSpeech = true;
         }
 
+        if (e.results[i].isFinal) {
+
+          if (piece !== lastFinalRef.current) {
+
+            finalText += piece + ' ';
+
+            lastFinalRef.current = piece;
+          }
+
+        } else {
+
+          interim += piece;
+        }
+      }
+
+      transcriptRef.current = finalText;
+
+      const display =
+        (finalText + interim).trim();
+
+      const hasInterim =
+        Boolean(interim.trim());
+
+      const isUserSpeakingNow =
+        heardSpeech && hasInterim;
+
+      if (
+        display === lastDisplay &&
+        isUserSpeakingNow === lastUserSpeaking
+      ) {
+        return;
+      }
+
+      lastDisplay = display;
+
+      lastUserSpeaking = isUserSpeakingNow;
+
+      publishSpeechUpdate({
+        display,
+        finalText: finalText.trim(),
+        isUserSpeaking: isUserSpeakingNow,
+        hasInterim,
+        meta: {
+          activeSpeech: heardSpeech,
+          hasInterim,
+          lastSpeechAt: Date.now(),
+        },
       });
     };
 
-    // ─────────────────────────────────────────────
-    // CREATE RECOGNITION
-    // ─────────────────────────────────────────────
+    // =========================
+    // ERROR
+    // =========================
+    rec.onerror = (e) => {
 
-    const createRecognition = () => {
+      console.warn('Speech recognition error:', e.error);
 
-      const rec = new SRClass();
+      if (e.error === 'not-allowed') {
 
-      // ✅ MOBILE SAFE CONFIG
+        setIsListening(false);
 
-      if (isMobileRef.current) {
-
-        rec.continuous = false;
-        rec.interimResults = false;
-        rec.lang = 'en-US';
-
-      } else {
-
-        rec.continuous = true;
-        rec.interimResults = true;
-        rec.lang = 'en-IN';
-
-      }
-
-      rec.maxAlternatives = 1;
-
-      // ─────────────────────────────────────────
-      // RESULT
-      // ─────────────────────────────────────────
-
-      rec.onresult = (e) => {
-
-        let interim = '';
-
-        for (
-          let i = e.resultIndex;
-          i < e.results.length;
-          i++
-        ) {
-
-          const piece =
-            e.results[i][0].transcript || '';
-
-          if (e.results[i].isFinal) {
-
-            finalText += piece;
-
-            if (
-              finalText &&
-              !finalText.endsWith(' ')
-            ) {
-              finalText += ' ';
-            }
-
-          } else {
-
-            interim += piece;
-
-          }
-        }
-
-        transcriptRef.current = finalText;
-
-        const display =
-          (finalText + interim).trim();
-
-        const hasInterim =
-          Boolean(interim.trim());
-
-        scheduleFlush({
-          display,
-          finalText: finalText.trim(),
-          isUserSpeaking: hasInterim,
-          hasInterim,
-          meta: {
-            hasInterim,
-            lastSpeechAt: Date.now(),
-          },
-        });
-      };
-
-      // ─────────────────────────────────────────
-      // ERROR
-      // ─────────────────────────────────────────
-
-      rec.onerror = (e) => {
-
-        if (e.error === 'not-allowed') {
-
-          setIsListening(false);
-
-          alert('Microphone permission denied.');
-
-          return;
-        }
-
-        // ✅ IGNORE COMMON MOBILE ERRORS
-
-        if (
-          e.error === 'network' ||
-          e.error === 'aborted'
-        ) {
-          return;
-        }
-
-        console.warn(
-          'Speech recognition error:',
-          e.error
+        alert(
+          'Microphone permission denied.'
         );
-      };
+      }
+    };
 
-      // ─────────────────────────────────────────
-      // END
-      // ─────────────────────────────────────────
+    // =========================
+    // AUTO RECOVERY
+    // =========================
+    rec.onend = () => {
 
-      rec.onend = () => {
+      if (intentionalStopRef.current) return;
 
-        if (intentionalStopRef.current) return;
+      restartCountRef.current++;
 
-        if (recognitionRef.current !== rec) return;
+      const delay = Math.min(
+        1000 * restartCountRef.current,
+        5000
+      );
 
-        clearTimeout(restartTimeoutRef.current);
+      clearTimeout(restartTimeoutRef.current);
 
-        restartTimeoutRef.current = setTimeout(() => {
-
-          if (intentionalStopRef.current) return;
+      restartTimeoutRef.current =
+        setTimeout(() => {
 
           try {
 
-            // ✅ MOBILE:
-            // recreate every time
-
-            if (isMobileRef.current) {
-
-              rec.onresult = null;
-              rec.onerror = null;
-              rec.onend = null;
-
-              recognitionRef.current = null;
-
-              const fresh = createRecognition();
-
-              recognitionRef.current = fresh;
-
-              fresh.start();
-
-            } else {
-
-              // ✅ PC:
-              // keep your original behavior
-
-              rec.start();
-
-            }
+            rec.start();
 
           } catch (err) {
 
             console.warn(
-              'Recognition restart failed:',
+              'Recognition restart failed',
               err
             );
-
-            if (!intentionalStopRef.current) {
-
-              try {
-
-                const fresh = createRecognition();
-
-                recognitionRef.current = fresh;
-
-                fresh.start();
-
-              } catch {}
-
-            }
           }
 
-        }, isMobileRef.current ? 1200 : 150);
-
-      };
-
-      return rec;
+        }, delay);
     };
 
-    // CREATE INSTANCE
-
-    const rec = createRecognition();
-
-    recognitionRef.current = rec;
-
+    // =========================
+    // START
+    // =========================
     try {
 
       rec.start();
+
+      recognitionRef.current = rec;
 
       setIsListening(true);
 
     } catch (err) {
 
-      console.error(
-        'Failed to start recognition:',
-        err
-      );
+      console.error(err);
     }
 
     return () => {
+
       intentionalStopRef.current = true;
     };
 
   }, []);
 
-  // ─────────────────────────────────────────────────────────────
+  // =========================
   // STOP LISTENING
-  // ─────────────────────────────────────────────────────────────
-
+  // =========================
   const stopListening = useCallback(() => {
 
     intentionalStopRef.current = true;
 
     clearTimeout(restartTimeoutRef.current);
+
     clearTimeout(speakingTimeoutRef.current);
 
     if (recognitionRef.current) {
 
       try {
 
-        recognitionRef.current.onresult = null;
-        recognitionRef.current.onerror = null;
         recognitionRef.current.onend = null;
 
         recognitionRef.current.abort();
 
       } catch {}
-
-      recognitionRef.current = null;
     }
 
-    flushScheduledRef.current = false;
+    recognitionRef.current = null;
 
-    pendingUpdateRef.current = null;
+    if (speechFrameRef.current) {
+
+      cancelAnimationFrame(
+        speechFrameRef.current
+      );
+
+      speechFrameRef.current = null;
+
+      pendingSpeechRef.current = null;
+    }
 
     setIsListening(false);
 
@@ -627,37 +601,40 @@ export function useVoice() {
 
   }, []);
 
-  // ─────────────────────────────────────────────────────────────
+  // =========================
   // RESET TRANSCRIPT
-  // ─────────────────────────────────────────────────────────────
-
+  // =========================
   const resetTranscript = useCallback(() => {
 
     transcriptRef.current = '';
+
+    lastFinalRef.current = '';
 
     setTranscript('');
 
   }, []);
 
-  // ─────────────────────────────────────────────────────────────
+  // =========================
   // RETURN
-  // ─────────────────────────────────────────────────────────────
-
+  // =========================
   return {
 
     isSpeaking,
+
     isListening,
+
     isUserSpeaking,
+
     transcript,
 
     speak,
+
     stopSpeaking,
 
     startListening,
+
     stopListening,
 
     resetTranscript,
-
   };
-
 }
