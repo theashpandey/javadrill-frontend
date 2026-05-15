@@ -728,6 +728,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
   const pct    = ((currentQ + 1) / total) * 100;
   const tColor = timeLeft < 120 ? '#ef4444' : timeLeft < 300 ? '#f59e0b' : '#10b981';
   const cColor = codingTimer < 60 ? '#ef4444' : codingTimer < 180 ? '#f59e0b' : '#38bdf8';
+  const autoSubmitLeft = Math.max(0, silentLimit - silentCount);
 
   return (
     <div style={{ maxWidth:720, margin:'0 auto', display:'flex', flexDirection:'column', gap:'1rem' }}>
@@ -755,7 +756,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
             <div style={{ fontSize:'14px', fontWeight:600 }}>Sarah</div>
             <div style={{ fontSize:'11px', color: voice.isSpeaking ? '#818cf8' : voice.isListening ? '#10b981' : 'var(--text3)', display:'flex', alignItems:'center', gap:'4px' }}>
               {voice.isSpeaking ? <><span style={{ width:6, height:6, borderRadius:'50%', background:'#6366f1', animation:'pulse-glow 1s infinite', display:'inline-block' }} /> Speaking...</>
-               : voice.isListening ? <><span style={{ width:6, height:6, borderRadius:'50%', background:'#ef4444', animation:'pulse-glow 0.6s infinite', display:'inline-block' }} /> Listening</>
+               : voice.isListening ? <><span style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', animation:'pulse-glow 0.6s infinite', display:'inline-block' }} /> Listening...</>
                : submitting ? <><Spinner size={10} /> Processing...</>
                : '· Ready'}
             </div>
@@ -876,6 +877,64 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
         </div>
       )}
 
+      {!isCodingQuestion && voice.isListening && (
+        <div style={{ display:'flex', justifyContent:'center' }}>
+          <div style={{
+            width:'100%',
+            maxWidth:540,
+            padding:'0.85rem 1rem',
+            borderRadius:'8px',
+            background:'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(59,130,246,0.08))',
+            border:'1px solid rgba(16,185,129,0.28)',
+            boxShadow:'0 14px 36px rgba(16,185,129,0.10)',
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'space-between',
+            gap:'0.85rem',
+            flexWrap:'wrap',
+            animation:'listening-panel-in 0.25s ease',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', minWidth:0 }}>
+              <div style={{ position:'relative', width:36, height:36, borderRadius:'50%', background:'rgba(16,185,129,0.16)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <span style={{ position:'absolute', inset:0, borderRadius:'50%', border:'1px solid rgba(16,185,129,0.45)', animation:'listen-ring 1.35s ease-out infinite' }} />
+                <span style={{ width:9, height:9, borderRadius:'50%', background:'#10b981', boxShadow:'0 0 16px rgba(16,185,129,0.85)', animation:'pulse-glow 0.75s infinite', display:'inline-block' }} />
+              </div>
+              <div style={{ minWidth:0 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'0.55rem', color:'#10b981', fontSize:'13px', fontWeight:800 }}>
+                  Listening...
+                  <span style={{ display:'inline-flex', alignItems:'end', gap:3, height:16 }}>
+                    {[0, 1, 2, 3].map(i => (
+                      <span key={i} style={{ width:3, height:7 + i * 2, borderRadius:3, background:'#10b981', animation:`listen-bars 0.72s ease-in-out ${i * 0.1}s infinite alternate`, display:'inline-block' }} />
+                    ))}
+                  </span>
+                </div>
+                <div style={{ marginTop:2, color:'var(--text3)', fontSize:'12px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  Sarah is hearing your answer
+                </div>
+              </div>
+            </div>
+
+            {autoWarn && (
+              <div style={{
+                padding:'0.45rem 0.7rem',
+                borderRadius:'8px',
+                background:'rgba(245,158,11,0.12)',
+                border:'1px solid rgba(245,158,11,0.32)',
+                color:'#f59e0b',
+                fontSize:'12px',
+                fontWeight:700,
+                display:'flex',
+                alignItems:'center',
+                gap:'0.45rem',
+                flexShrink:0,
+              }}>
+                Auto-submitting in {autoSubmitLeft}s...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Controls */}
       {!showFeedback && (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'0.85rem', flexWrap:'wrap' }}>
@@ -935,6 +994,18 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
       <style>{`
         @keyframes ping {
           75%, 100% { transform: scale(1.8); opacity: 0; }
+        }
+        @keyframes listen-ring {
+          0% { transform: scale(0.82); opacity: 0.95; }
+          100% { transform: scale(1.65); opacity: 0; }
+        }
+        @keyframes listen-bars {
+          from { transform: scaleY(0.45); opacity: 0.55; }
+          to { transform: scaleY(1.2); opacity: 1; }
+        }
+        @keyframes listening-panel-in {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
