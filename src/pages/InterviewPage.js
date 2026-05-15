@@ -446,7 +446,7 @@ export default function InterviewPage() {
     const upd = [...answersRef.current];
     upd[qIndex] = ans || '(no answer)';
     setAnswers(upd); answersRef.current = upd;
-
+console.log('Submitting answer:', { interviewId: interviewIdRef.current, questionId, ans, qIndex });
     try {
       const res = await apiCall('/api/interview/submit', {
         method: 'POST',
