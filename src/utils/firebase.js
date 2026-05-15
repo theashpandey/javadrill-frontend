@@ -17,12 +17,13 @@ import {
 } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBbsz3ce5g4esNbwC9L_P0uGAkVZ-Mx1bc",
+  apiKey: "AIzaSyD-FFtsOL9bbBaKMzD6B0hhMlGCNhnP-z0",
   authDomain: "auth.assessarc.com",
-  projectId: "assessarc-504c9",
-  storageBucket: "assessarc-504c9.firebasestorage.app",
-  messagingSenderId: "597215005430",
-  appId: "1:597215005430:web:035803a72e356bec3a3ad7"
+  projectId: "gen-lang-client-0614528980",
+  storageBucket: "gen-lang-client-0614528980.firebasestorage.app",
+  messagingSenderId: "220209734473",
+  appId: "1:220209734473:web:2a4cc0196d78402fc2f098",
+  measurementId: "G-J9JSNS258E"
 };
 
 const app = initializeApp(firebaseConfig);
