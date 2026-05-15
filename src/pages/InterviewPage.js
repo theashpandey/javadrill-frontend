@@ -75,6 +75,10 @@ export default function InterviewPage() {
   const prepareRef    = useRef(null);
   const silentCntRef  = useRef(0);
   const codingTimerRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioStreamRef = useRef(null);
+  const audioMimeTypeRef = useRef('');
 
   // Stable refs
   const answersRef    = useRef([]);
@@ -108,7 +112,76 @@ export default function InterviewPage() {
   useEffect(() => () => {
     voice.stopSpeaking(); voice.stopListening();
     clearInterval(timerRef.current); clearInterval(silentRef.current); clearInterval(prepareRef.current); clearInterval(codingTimerRef.current);
+    stopAnswerRecording();
   }, []);
+
+  const pickAudioMimeType = useCallback(() => {
+    if (!window.MediaRecorder) return '';
+    const options = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/mpeg',
+    ];
+    return options.find(type => window.MediaRecorder.isTypeSupported(type)) || '';
+  }, []);
+
+  const startAnswerRecording = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return;
+    if (mediaRecorderRef.current?.state === 'recording') return;
+
+    try {
+      await stopAnswerRecording();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      const mimeType = pickAudioMimeType();
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      audioMimeTypeRef.current = recorder.mimeType || mimeType || 'audio/webm';
+      audioStreamRef.current = stream;
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+      recorder.start(1000);
+    } catch (e) {
+      console.warn('Audio recording unavailable:', e?.message || e);
+      audioChunksRef.current = [];
+      audioMimeTypeRef.current = '';
+    }
+  }, [pickAudioMimeType]);
+
+  const stopAnswerRecording = useCallback(() => new Promise((resolve) => {
+    const recorder = mediaRecorderRef.current;
+    const stream = audioStreamRef.current;
+    const finish = () => {
+      const chunks = audioChunksRef.current;
+      const mimeType = audioMimeTypeRef.current || recorder?.mimeType || 'audio/webm';
+      const blob = chunks.length ? new Blob(chunks, { type: mimeType }) : null;
+      mediaRecorderRef.current = null;
+      audioStreamRef.current = null;
+      audioChunksRef.current = [];
+      audioMimeTypeRef.current = '';
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      resolve(blob && blob.size > 0 ? blob : null);
+    };
+
+    if (!recorder) {
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      audioStreamRef.current = null;
+      resolve(null);
+      return;
+    }
+
+    recorder.onstop = finish;
+    if (recorder.state === 'inactive') finish();
+    else recorder.stop();
+  }), []);
 
   const clearPrepareTimer = useCallback(() => {
     clearInterval(prepareRef.current);
@@ -214,6 +287,7 @@ export default function InterviewPage() {
                   startSilentTimer();
                 }
               });
+              startAnswerRecording();
               startSilentTimer();
             });
           } else {
@@ -422,12 +496,13 @@ export default function InterviewPage() {
                 startSilentTimer();
               }
             });
+            startAnswerRecording();
             startSilentTimer();
           }
         }, 1000);
       });
     }
-  }, [voice, startSilentTimer, interviewRole, duration, codingDraftKey]);
+  }, [voice, startSilentTimer, startAnswerRecording, interviewRole, duration, codingDraftKey]);
 
   const submitAnswer = useCallback(async () => {
     if (submittingRef.current) return;
@@ -441,6 +516,7 @@ export default function InterviewPage() {
     clearInterval(silentRef.current);
     setSilentCount(0); setAutoWarn(false);
     voice.stopListening();
+    const audioBlob = await stopAnswerRecording();
     setSubmitting(true); setMicReady(false);
 
     const upd = [...answersRef.current];
@@ -448,15 +524,29 @@ export default function InterviewPage() {
     setAnswers(upd); answersRef.current = upd;
 console.log('Submitting answer:', { interviewId: interviewIdRef.current, questionId, ans, qIndex });
     try {
-      const res = await apiCall('/api/interview/submit', {
-        method: 'POST',
-        body: JSON.stringify({
-          interviewId: interviewIdRef.current,
-          questionId,
-          answer:      ans || '',
-          questionIndex: qIndex,
-        }),
-      });
+      let res;
+      if (audioBlob) {
+        const form = new FormData();
+        form.append('interviewId', interviewIdRef.current);
+        form.append('questionId', questionId || '');
+        form.append('questionIndex', String(qIndex));
+        form.append('fallbackAnswer', ans || '');
+        form.append('audio', audioBlob, `answer-${qIndex}.webm`);
+        res = await apiCall('/api/interview/submit-audio', {
+          method: 'POST',
+          body: form,
+        });
+      } else {
+        res = await apiCall('/api/interview/submit', {
+          method: 'POST',
+          body: JSON.stringify({
+            interviewId: interviewIdRef.current,
+            questionId,
+            answer:      ans || '',
+            questionIndex: qIndex,
+          }),
+        });
+      }
 
       const correctedAnswer = res.answer || ans || '(no answer)';
       const answerUpd = [...answersRef.current];
@@ -486,7 +576,7 @@ console.log('Submitting answer:', { interviewId: interviewIdRef.current, questio
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [voice]);
+  }, [voice, stopAnswerRecording]);
 
   const submitCodingAnswer = useCallback(async ({ auto = false, advance = true } = {}) => {
     if (submittingRef.current) return;
@@ -617,6 +707,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
     const qIndex = currentQRef.current;
     const question = sessionQsRef.current[qIndex];
     voice.stopListening(); voice.stopSpeaking();
+    const audioBlob = await stopAnswerRecording();
     setScreen(SCREENS.REPORT);
 
     const iId = interviewIdRef.current;
@@ -631,19 +722,33 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
       if (submitCurrent && isCodingQuestionRef.current && question) {
         await submitCodingAnswer({ auto: true, advance: false });
       }
-      if (submitCurrent && pendingAnswer && question) {
+      if (submitCurrent && (pendingAnswer || audioBlob) && question) {
         const upd = [...answersRef.current];
         upd[qIndex] = pendingAnswer;
         setAnswers(upd); answersRef.current = upd;
-        const submitRes = await apiCall('/api/interview/submit', {
-          method: 'POST',
-          body: JSON.stringify({
-            interviewId: iId,
-            questionId: question.id,
-            answer: pendingAnswer,
-            questionIndex: qIndex,
-          }),
-        });
+        let submitRes;
+        if (audioBlob) {
+          const form = new FormData();
+          form.append('interviewId', iId);
+          form.append('questionId', question.id || '');
+          form.append('questionIndex', String(qIndex));
+          form.append('fallbackAnswer', pendingAnswer);
+          form.append('audio', audioBlob, `answer-${qIndex}.webm`);
+          submitRes = await apiCall('/api/interview/submit-audio', {
+            method: 'POST',
+            body: form,
+          });
+        } else {
+          submitRes = await apiCall('/api/interview/submit', {
+            method: 'POST',
+            body: JSON.stringify({
+              interviewId: iId,
+              questionId: question.id,
+              answer: pendingAnswer,
+              questionIndex: qIndex,
+            }),
+          });
+        }
         if (submitRes?.answer) {
           const correctedUpd = [...answersRef.current];
           correctedUpd[qIndex] = submitRes.answer;
@@ -672,7 +777,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
     } finally {
       completingRef.current = false;
     }
-}, [voice, submitCodingAnswer]);
+}, [voice, submitCodingAnswer, stopAnswerRecording]);
 
   const restart = () => {
     voice.stopSpeaking(); voice.stopListening();
