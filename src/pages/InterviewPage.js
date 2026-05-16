@@ -892,7 +892,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
   const autoSubmitLeft = Math.max(0, silentLimit - silentCount);
 
   return (
-    <div style={{ maxWidth:720, margin:'0 auto', display:'flex', flexDirection:'column', gap:'1rem' }}>
+    <div style={{ maxWidth:isCodingQuestion ? 1420 : 720, margin:'0 auto', display:'flex', flexDirection:'column', gap:'1rem', width:'100%' }}>
 
       {/* ── Header bar ── */}
       <Card style={{ padding:'0.85rem 1.1rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -917,7 +917,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
             <div style={{ fontSize:'14px', fontWeight:600 }}>Sarah</div>
             <div style={{ fontSize:'11px', color: voice.isSpeaking ? '#818cf8' : (voice.isListening || audioRecording) ? '#10b981' : 'var(--text3)', display:'flex', alignItems:'center', gap:'4px' }}>
               {voice.isSpeaking ? <><span style={{ width:6, height:6, borderRadius:'50%', background:'#6366f1', animation:'pulse-glow 1s infinite', display:'inline-block' }} /> Speaking...</>
-               : (voice.isListening || audioRecording) ? <><span style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', animation:'pulse-glow 0.6s infinite', display:'inline-block' }} /> Recording...</>
+               : (voice.isListening || audioRecording) ? <><span style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', animation:'pulse-glow 0.6s infinite', display:'inline-block' }} /> Listening...</>
                : submitting ? <><Spinner size={10} /> Processing...</>
                : '· Ready'}
             </div>
@@ -1011,7 +1011,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
           <div style={{ minHeight:72, fontSize:'14.5px', lineHeight:1.75, color: voice.transcript || prepareCount != null ? 'var(--text)' : 'var(--text3)', fontStyle: voice.transcript || prepareCount != null ? 'normal' : 'italic' }}>
             {prepareCount != null
               ? `Listening starts in ${prepareCount}s...`
-              : voice.transcript || (audioRecording ? 'Recording your answer. Speak naturally, then submit when ready.' : 'Mic activates automatically after Sarah finishes speaking...')}
+              : voice.transcript || (audioRecording ? 'Listening to your answer. Speak naturally, then submit when ready.' : 'Mic activates automatically after Sarah finishes speaking...')}
           </div>
 
           {prepareCount != null && (
@@ -1062,7 +1062,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
               </div>
               <div style={{ minWidth:0 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:'0.55rem', color:'#10b981', fontSize:'13px', fontWeight:800 }}>
-                  {recordingOnlyRef.current ? 'Recording...' : 'Listening...'}
+                  Listening...
                   <span style={{ display:'inline-flex', alignItems:'end', gap:3, height:16 }}>
                     {[0, 1, 2, 3].map(i => (
                       <span key={i} style={{ width:3, height:7 + i * 2, borderRadius:3, background:'#10b981', animation:`listen-bars 0.72s ease-in-out ${i * 0.1}s infinite alternate`, display:'inline-block' }} />
@@ -1070,7 +1070,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
                   </span>
                 </div>
                 <div style={{ marginTop:2, color:'var(--text3)', fontSize:'12px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                  {recordingOnlyRef.current ? 'Speech transcript is unavailable on this browser' : 'Sarah is hearing your answer'}
+                  {recordingOnlyRef.current ? 'Sarah is hearing your answer' : 'Sarah is hearing your answer'}
                 </div>
               </div>
             </div>
@@ -1100,18 +1100,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
       {!showFeedback && (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'0.85rem', flexWrap:'wrap' }}>
           {isCodingQuestion ? (
-            <>
-              {!submitting && (
-                <Button onClick={submitCodingAnswer} variant="primary" size="md">
-                  {code.trim() ? 'Submit Code' : 'Submit Without Code'}
-                </Button>
-              )}
-              {submitting && (
-                <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', color:'var(--text2)', fontSize:'13px' }}>
-                  <Spinner size={18} /> Analyzing your code...
-                </div>
-              )}
-            </>
+            null
           ) : (
             <>
               {micReady && (voice.isListening || audioRecording) && (voice.transcript || audioRecording) && !submitting && (
@@ -1167,6 +1156,48 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
         @keyframes listening-panel-in {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        .coding-workspace {
+          display: grid;
+          grid-template-columns: minmax(0, 1.28fr) minmax(340px, 0.82fr);
+          gap: 1rem;
+          align-items: stretch;
+        }
+        .coding-editor-card {
+          min-height: 620px;
+        }
+        .coding-problem-card {
+          max-height: 620px;
+        }
+        .coding-problem-scroll {
+          overflow-y: auto;
+          padding-right: 0.15rem;
+        }
+        .coding-toolbar {
+          gap: 0.7rem;
+        }
+        @media (max-width: 980px) {
+          .coding-workspace {
+            grid-template-columns: 1fr;
+          }
+          .coding-editor-card {
+            min-height: 520px;
+          }
+          .coding-problem-card {
+            max-height: none;
+          }
+        }
+        @media (max-width: 640px) {
+          .coding-editor-card {
+            min-height: 460px;
+          }
+          .coding-toolbar {
+            align-items: stretch !important;
+          }
+          .coding-toolbar > div {
+            width: 100%;
+            justify-content: space-between;
+          }
         }
       `}</style>
     </div>
@@ -1227,19 +1258,28 @@ function CodingProblemPanel({ question }) {
   const prompt = buildCodingPrompt(question);
 
   return (
-    <Card style={{ padding:'1rem', background:'rgba(8,13,28,0.88)', border:'1px solid rgba(56,189,248,0.18)' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'0.75rem', marginBottom:'0.85rem', flexWrap:'wrap' }}>
+    <Card className="coding-problem-card" style={{
+      padding:'1.05rem',
+      background:'linear-gradient(180deg, rgba(15,23,42,0.94), rgba(8,13,28,0.92))',
+      border:'1px solid rgba(148,163,184,0.16)',
+      boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 44px rgba(2,6,23,0.26)',
+      display:'flex',
+      flexDirection:'column',
+      overflow:'hidden',
+      borderRadius:'12px',
+    }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'0.75rem', marginBottom:'0.95rem', flexWrap:'wrap', flexShrink:0 }}>
         <div>
-          <div style={{ fontSize:'11px', color:'#38bdf8', textTransform:'uppercase', letterSpacing:'1.2px', fontWeight:700 }}>Coding Problem</div>
-          <div style={{ fontSize:'18px', fontWeight:800, color:'var(--text)', lineHeight:1.35, marginTop:'0.2rem' }}>{prompt.title}</div>
+          <div style={{ fontSize:'11px', color:'#7dd3fc', textTransform:'uppercase', letterSpacing:'1.2px', fontWeight:800 }}>Problem</div>
+          <div style={{ fontSize:'19px', fontWeight:800, color:'var(--text)', lineHeight:1.35, marginTop:'0.25rem' }}>{prompt.title}</div>
         </div>
         <Badge color="#38bdf8">{prompt.testCases.length || (prompt.testsFromText ? 1 : 0)} test cases</Badge>
       </div>
 
-      <div style={{ display:'grid', gap:'0.9rem' }}>
+      <div className="coding-problem-scroll" style={{ display:'grid', gap:'1rem' }}>
         <section>
-          <div style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:700, marginBottom:'0.45rem' }}>Problem Description</div>
-          <div style={{ fontSize:'14px', lineHeight:1.75, color:'var(--text2)', whiteSpace:'pre-wrap' }}>{prompt.description}</div>
+          <div style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:800, marginBottom:'0.5rem' }}>Description</div>
+          <div style={{ fontSize:'14.5px', lineHeight:1.8, color:'var(--text2)', whiteSpace:'pre-wrap' }}>{prompt.description}</div>
         </section>
 
         {prompt.expectedOutput && (
@@ -1277,6 +1317,46 @@ function CodingProblemPanel({ question }) {
   );
 }
 
+function registerKotlinLanguage(monaco) {
+  if (!monaco?.languages || monaco.languages.getLanguages().some(lang => lang.id === 'kotlin')) return;
+  monaco.languages.register({ id: 'kotlin' });
+  monaco.languages.setMonarchTokensProvider('kotlin', {
+    keywords: [
+      'as', 'break', 'class', 'continue', 'do', 'else', 'false', 'for', 'fun', 'if', 'in',
+      'interface', 'is', 'null', 'object', 'package', 'return', 'super', 'this', 'throw',
+      'true', 'try', 'typealias', 'typeof', 'val', 'var', 'when', 'while', 'by', 'catch',
+      'constructor', 'delegate', 'dynamic', 'field', 'file', 'finally', 'get', 'import',
+      'init', 'param', 'property', 'receiver', 'set', 'setparam', 'where', 'actual',
+      'abstract', 'annotation', 'companion', 'const', 'crossinline', 'data', 'enum',
+      'expect', 'external', 'final', 'infix', 'inline', 'inner', 'internal', 'lateinit',
+      'noinline', 'open', 'operator', 'out', 'override', 'private', 'protected', 'public',
+      'reified', 'sealed', 'suspend', 'tailrec', 'vararg',
+    ],
+    tokenizer: {
+      root: [
+        [/[a-zA-Z_$][\w$]*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
+        [/\/\/.*$/, 'comment'],
+        [/\/\*/, 'comment', '@comment'],
+        [/"([^"\\]|\\.)*$/, 'string.invalid'],
+        [/"/, 'string', '@string'],
+        [/'[^\\']'/, 'string'],
+        [/\d+(\.\d+)?/, 'number'],
+        [/[{}()[\]]/, '@brackets'],
+      ],
+      comment: [
+        [/[^/*]+/, 'comment'],
+        [/\*\//, 'comment', '@pop'],
+        [/[/*]/, 'comment'],
+      ],
+      string: [
+        [/[^\\"]+/, 'string'],
+        [/\\./, 'string.escape'],
+        [/"/, 'string', '@pop'],
+      ],
+    },
+  });
+}
+
 function CodingEditor({ question, code, setCode, language, setLanguage, onSubmit, submitting, timer, timerRunning }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const editorRef = useRef(null);
@@ -1288,6 +1368,7 @@ function CodingEditor({ question, code, setCode, language, setLanguage, onSubmit
     { value: 'sql', label: 'SQL' },
     { value: 'cpp', label: 'C++' },
     { value: 'csharp', label: 'C#' },
+    { value: 'kotlin', label: 'Kotlin' },
   ];
 
   const blockClipboard = useCallback((event) => {
@@ -1297,6 +1378,7 @@ function CodingEditor({ question, code, setCode, language, setLanguage, onSubmit
 
   const handleEditorMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
+    registerKotlinLanguage(monaco);
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, () => {});
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX, () => {});
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => {});
@@ -1314,40 +1396,43 @@ function CodingEditor({ question, code, setCode, language, setLanguage, onSubmit
   }, []);
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
-      <CodingProblemPanel question={question} />
-      <Card style={{
+    <div className="coding-workspace">
+      <Card className="coding-editor-card" style={{
         padding: 0,
-        background: '#111827',
-        border: '1px solid rgba(148,163,184,0.22)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 36px rgba(0,0,0,0.24)',
-        height: isFullscreen ? '80vh' : '430px',
+        background: '#0b1120',
+        border: '1px solid rgba(148,163,184,0.18)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 22px 52px rgba(2,6,23,0.32)',
+        height: isFullscreen ? '78vh' : undefined,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        borderRadius: '12px',
       }}>
-      <div style={{
+      <div className="coding-toolbar" style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '0.55rem 0.75rem',
-        background: 'linear-gradient(180deg,#1f2937,#111827)',
+        padding: '0.7rem 0.85rem',
+        background: 'linear-gradient(180deg,#111827,#0b1120)',
         borderBottom: '1px solid rgba(148,163,184,0.18)',
+        flexWrap: 'wrap',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '11px', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap:'wrap' }}>
+          <span style={{ width:10, height:10, borderRadius:'50%', background:'#22c55e', boxShadow:'0 0 18px rgba(34,197,94,0.45)', display:'inline-block' }} />
+          <span style={{ fontSize: '12px', color: '#e5e7eb', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800 }}>
             Code Editor
           </span>
           <select
             value={language}
             onChange={e => setLanguage(e.target.value)}
             style={{
-              fontSize: '11px',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              border: '1px solid rgba(148,163,184,0.28)',
+              fontSize: '12px',
+              padding: '0.38rem 0.58rem',
+              borderRadius: '8px',
+              border: '1px solid rgba(148,163,184,0.24)',
               background: '#0f172a',
               color: '#e5e7eb',
+              outline: 'none',
             }}
           >
             {languages.map(lang => (
@@ -1355,17 +1440,26 @@ function CodingEditor({ question, code, setCode, language, setLanguage, onSubmit
             ))}
           </select>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '11px', color: timer < 60 ? '#f87171' : '#cbd5e1', fontFamily: 'var(--font-mono)' }}>
-            {timerRunning ? 'Coding ' : 'Starts after prompt '} {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap:'wrap', justifyContent:'flex-end' }}>
+          <span style={{ fontSize: '12px', color: timer < 60 ? '#f87171' : '#cbd5e1', fontFamily: 'var(--font-mono)', padding:'0.38rem 0.58rem', borderRadius:'8px', background:'rgba(15,23,42,0.82)', border:'1px solid rgba(148,163,184,0.16)' }}>
+             {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
           </span>
+          {!submitting ? (
+            <Button onClick={onSubmit} variant="primary" size="sm" style={{ borderRadius:'8px', padding:'0.48rem 0.85rem' }}>
+              {code.trim() ? 'Submit Code' : 'Submit Empty'}
+            </Button>
+          ) : (
+            <span style={{ display:'inline-flex', alignItems:'center', gap:'0.45rem', color:'#cbd5e1', fontSize:'12px' }}>
+              <Spinner size={14} /> Reviewing
+            </span>
+          )}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsFullscreen(!isFullscreen)}
-            style={{ fontSize: '11px', padding: '2px 6px' }}
+            style={{ fontSize: '12px', padding: '0.42rem 0.65rem', border:'1px solid rgba(148,163,184,0.16)', borderRadius:'8px' }}
           >
-            {isFullscreen ? '⛶' : '⛶'}
+            {isFullscreen ? 'Exit Focus' : 'Focus'}
           </Button>
         </div>
       </div>
@@ -1376,7 +1470,7 @@ function CodingEditor({ question, code, setCode, language, setLanguage, onSubmit
         onCut={blockClipboard}
         onDrop={blockClipboard}
         onContextMenu={blockClipboard}
-        style={{ flex: 1, overflow: 'hidden', borderTop: '1px solid rgba(15,23,42,0.9)' }}
+        style={{ flex: 1, overflow: 'hidden', borderTop: '1px solid rgba(15,23,42,0.9)', minHeight: 0 }}
       >
         <Editor
           height="100%"
@@ -1387,7 +1481,7 @@ function CodingEditor({ question, code, setCode, language, setLanguage, onSubmit
           theme="vs-dark"
           options={{
             minimap: { enabled: false },
-            fontSize: 13,
+            fontSize: 14,
             lineNumbers: 'on',
             roundedSelection: false,
             scrollBeyondLastLine: false,
@@ -1400,10 +1494,12 @@ function CodingEditor({ question, code, setCode, language, setLanguage, onSubmit
             copyWithSyntaxHighlighting: false,
             cursorBlinking: 'solid',
             renderLineHighlight: 'line',
+            padding: { top: 14, bottom: 14 },
           }}
         />
       </div>
       </Card>
+      <CodingProblemPanel question={question} />
     </div>
   );
 }
