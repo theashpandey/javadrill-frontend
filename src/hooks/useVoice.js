@@ -303,35 +303,22 @@ export function useVoice() {
       window.webkitSpeechRecognition;
 
     if (!SRClass) {
+      setIsListening(true);
+      setIsUserSpeaking(false);
+      onUpdate?.('', '', {
+        recognitionUnsupported: true,
+        recordingOnly: true,
+        lastSpeechAt: Date.now(),
+      });
 
-      alert(
-        'Speech recognition works best in Chrome or Edge.'
-      );
-
-      return () => {};
+      return () => {
+        intentionalStopRef.current = true;
+        setIsListening(false);
+        setIsUserSpeaking(false);
+      };
     }
 
     intentionalStopRef.current = false;
-
-    // =========================
-    // MIC PRE-WARM
-    // =========================
-    try {
-
-      await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        }
-      });
-
-    } catch (err) {
-
-      alert('Microphone access denied.');
-
-      return () => {};
-    }
 
     // =========================
     // CLEAN OLD INSTANCE
@@ -551,6 +538,7 @@ export function useVoice() {
     } catch (err) {
 
       console.error(err);
+      setIsListening(false);
     }
 
     return () => {

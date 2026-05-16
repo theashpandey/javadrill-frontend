@@ -20,6 +20,7 @@ const ANSWER_PAUSE_SEC = 10;
 const SPEECH_ACTIVITY_GRACE_MS = 1800;
 const MIN_CONTINUE_SECONDS = 90;
 const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+const ENABLE_BROWSER_TRANSCRIPT = process.env.REACT_APP_ENABLE_BROWSER_TRANSCRIPT === 'true';
 
 export default function InterviewPage() {
   const {
@@ -50,6 +51,7 @@ export default function InterviewPage() {
   const [feedbackText, setFeedbackText] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [micReady, setMicReady]     = useState(false);
+  const [audioRecording, setAudioRecording] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loadingNextQuestion, setLoadingNextQuestion] = useState(false);
   const [finalScores, setFinalScores] = useState(null);
@@ -98,6 +100,8 @@ export default function InterviewPage() {
   const silencePromptedRef = useRef(false);
   const lastSpeechAtRef = useRef(0);
   const speechActiveRef = useRef(false);
+  const audioRecordingRef = useRef(false);
+  const recordingOnlyRef = useRef(false);
 
   useEffect(() => { answersRef.current   = answers;   }, [answers]);
   useEffect(() => { feedbacksRef.current = feedbacks; }, [feedbacks]);
@@ -108,6 +112,7 @@ export default function InterviewPage() {
   useEffect(() => { codeRef.current = code; }, [code]);
   useEffect(() => { languageRef.current = language; }, [language]);
   useEffect(() => { codingStartTimeRef.current = codingStartTime; }, [codingStartTime]);
+  useEffect(() => { audioRecordingRef.current = audioRecording; }, [audioRecording]);
 
   useEffect(() => () => {
     voice.stopSpeaking(); voice.stopListening();
@@ -126,9 +131,22 @@ export default function InterviewPage() {
     return options.find(type => window.MediaRecorder.isTypeSupported(type)) || '';
   }, []);
 
+  const requestMicrophoneAccess = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) return true;
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    stream.getTracks().forEach(track => track.stop());
+    return true;
+  }, []);
+
   const startAnswerRecording = useCallback(async () => {
-    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return;
-    if (mediaRecorderRef.current?.state === 'recording') return;
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return false;
+    if (mediaRecorderRef.current?.state === 'recording') return true;
 
     try {
       await stopAnswerRecording();
@@ -149,10 +167,16 @@ export default function InterviewPage() {
         if (event.data && event.data.size > 0) audioChunksRef.current.push(event.data);
       };
       recorder.start(1000);
+      setAudioRecording(true);
+      audioRecordingRef.current = true;
+      return true;
     } catch (e) {
       console.warn('Audio recording unavailable:', e?.message || e);
       audioChunksRef.current = [];
       audioMimeTypeRef.current = '';
+      setAudioRecording(false);
+      audioRecordingRef.current = false;
+      return false;
     }
   }, [pickAudioMimeType]);
 
@@ -168,12 +192,16 @@ export default function InterviewPage() {
       audioChunksRef.current = [];
       audioMimeTypeRef.current = '';
       if (stream) stream.getTracks().forEach(track => track.stop());
+      setAudioRecording(false);
+      audioRecordingRef.current = false;
       resolve(blob && blob.size > 0 ? blob : null);
     };
 
     if (!recorder) {
       if (stream) stream.getTracks().forEach(track => track.stop());
       audioStreamRef.current = null;
+      setAudioRecording(false);
+      audioRecordingRef.current = false;
       resolve(null);
       return;
     }
@@ -250,12 +278,26 @@ export default function InterviewPage() {
   // ── Silent auto-submit ──
   const startSilentTimer = useCallback(() => {
     clearInterval(silentRef.current);
-    const limit = transcriptRef.current.trim().length > 2 ? ANSWER_PAUSE_SEC : INITIAL_SILENT_SEC;
+    const limit = recordingOnlyRef.current && audioRecordingRef.current
+      ? 45
+      : transcriptRef.current.trim().length > 2 ? ANSWER_PAUSE_SEC : INITIAL_SILENT_SEC;
     silentCntRef.current = 0;
     setSilentLimit(limit);
     setSilentCount(0); setAutoWarn(false);
 
     silentRef.current = setInterval(() => {
+      if (recordingOnlyRef.current && audioRecordingRef.current) {
+        silentCntRef.current += 1;
+        setSilentCount(silentCntRef.current);
+        if (silentCntRef.current >= limit - 8) setAutoWarn(true);
+        if (silentCntRef.current >= limit) {
+          clearInterval(silentRef.current);
+          setAutoWarn(false); setSilentCount(0);
+          submitAnswer();
+        }
+        return;
+      }
+
       const recentlySpeaking = speechActiveRef.current || (Date.now() - lastSpeechAtRef.current < SPEECH_ACTIVITY_GRACE_MS);
       if (recentlySpeaking) {
         silentCntRef.current = 0;
@@ -278,21 +320,12 @@ export default function InterviewPage() {
             silencePromptedRef.current = true;
             voice.speak("Take your time. You can start with whatever comes to mind, even a rough answer is fine.", () => {
               setMicReady(true);
-              voice.startListening((display, final, meta) => {
-                speechActiveRef.current = Boolean(meta?.hasInterim);
-                if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
-                transcriptRef.current = display;
-                if (display !== lastTxRef.current) {
-                  lastTxRef.current = display;
-                  startSilentTimer();
-                }
-              });
-              startAnswerRecording();
-              startSilentTimer();
+              startAnswerCapture();
             });
           } else {
             const qIndex = currentQRef.current;
             const fb = "No worries, let's keep the momentum. We can move to the next one.";
+            stopAnswerRecording();
             const answerUpd = [...answersRef.current];
             answerUpd[qIndex] = '(no answer)';
             setAnswers(answerUpd); answersRef.current = answerUpd;
@@ -315,6 +348,31 @@ export default function InterviewPage() {
   }, []);
 
   // ── Resume upload ──
+  const handleTranscriptUpdate = useCallback((display, final, meta) => {
+    recordingOnlyRef.current = Boolean(meta?.recordingOnly);
+    speechActiveRef.current = Boolean(meta?.hasInterim);
+    if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
+    transcriptRef.current = display || final || '';
+    if (display !== lastTxRef.current) {
+      lastTxRef.current = display;
+      clearInterval(silentRef.current);
+      silentCntRef.current = 0;
+      setSilentCount(0); setAutoWarn(false);
+      startSilentTimer();
+    }
+  }, [startSilentTimer]);
+
+  const startAnswerCapture = useCallback(async () => {
+    const recordingStarted = await startAnswerRecording();
+    recordingOnlyRef.current = recordingStarted;
+
+    if (!recordingStarted || ENABLE_BROWSER_TRANSCRIPT) {
+      voice.startListening(handleTranscriptUpdate);
+    }
+
+    startSilentTimer();
+  }, [startAnswerRecording, voice, handleTranscriptUpdate, startSilentTimer]);
+
   const handleResumeFile = async (file) => {
     setResumeError('');
     if (!file) return;
@@ -366,6 +424,15 @@ export default function InterviewPage() {
     if (wallet < PRICE[dur]) { setError(`Need ${PRICE[dur]} credits. You have ${wallet}.`); return; }
 
     setIsLoading(true); setError('');
+
+    try {
+      await requestMicrophoneAccess();
+    } catch (err) {
+      setIsLoading(false);
+      setError('Microphone access is required for voice interviews. Please allow microphone permission and try again.');
+      return;
+    }
+
     deductWallet(PRICE[dur]);
 
     try {
@@ -415,6 +482,7 @@ export default function InterviewPage() {
     transcriptRef.current = '';
     lastTxRef.current     = '';
     silencePromptedRef.current = false;
+    recordingOnlyRef.current = false;
     voice.resetTranscript();
 
     // Check if coding question
@@ -484,25 +552,12 @@ export default function InterviewPage() {
           if (remaining <= 0) {
             clearPrepareTimer();
             setMicReady(true);
-            voice.startListening((display, final, meta) => {
-              speechActiveRef.current = Boolean(meta?.hasInterim);
-              if (meta?.activeSpeech) lastSpeechAtRef.current = meta.lastSpeechAt || Date.now();
-              transcriptRef.current = display || final || '';
-              if (display !== lastTxRef.current) {
-                lastTxRef.current = display;
-                clearInterval(silentRef.current);
-                silentCntRef.current = 0;
-                setSilentCount(0); setAutoWarn(false);
-                startSilentTimer();
-              }
-            });
-            startAnswerRecording();
-            startSilentTimer();
+            startAnswerCapture();
           }
         }, 1000);
       });
     }
-  }, [voice, startSilentTimer, startAnswerRecording, interviewRole, duration, codingDraftKey]);
+  }, [voice, startSilentTimer, startAnswerCapture, interviewRole, duration, codingDraftKey]);
 
   const submitAnswer = useCallback(async () => {
     if (submittingRef.current) return;
@@ -781,6 +836,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
 
   const restart = () => {
     voice.stopSpeaking(); voice.stopListening();
+    stopAnswerRecording();
     clearInterval(timerRef.current); clearInterval(silentRef.current);
     setScreen(SCREENS.HOME); setDuration(null);
     setSessionQs([]); setAnswers([]); setFeedbacks([]);
@@ -859,9 +915,9 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
           </div>
           <div>
             <div style={{ fontSize:'14px', fontWeight:600 }}>Sarah</div>
-            <div style={{ fontSize:'11px', color: voice.isSpeaking ? '#818cf8' : voice.isListening ? '#10b981' : 'var(--text3)', display:'flex', alignItems:'center', gap:'4px' }}>
+            <div style={{ fontSize:'11px', color: voice.isSpeaking ? '#818cf8' : (voice.isListening || audioRecording) ? '#10b981' : 'var(--text3)', display:'flex', alignItems:'center', gap:'4px' }}>
               {voice.isSpeaking ? <><span style={{ width:6, height:6, borderRadius:'50%', background:'#6366f1', animation:'pulse-glow 1s infinite', display:'inline-block' }} /> Speaking...</>
-               : voice.isListening ? <><span style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', animation:'pulse-glow 0.6s infinite', display:'inline-block' }} /> Listening...</>
+               : (voice.isListening || audioRecording) ? <><span style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', animation:'pulse-glow 0.6s infinite', display:'inline-block' }} /> Recording...</>
                : submitting ? <><Spinner size={10} /> Processing...</>
                : '· Ready'}
             </div>
@@ -945,7 +1001,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
         <Card style={{ display:'none' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.65rem' }}>
             <span style={{ fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1.5px' }}>Your Answer</span>
-            {voice.isListening && (
+            {(voice.isListening || audioRecording) && (
               <div style={{ display:'flex', alignItems:'center', gap:'0.4rem' }}>
                 <span style={{ width:7, height:7, borderRadius:'50%', background:'#ef4444', display:'inline-block', animation:'pulse-glow 0.6s infinite' }} />
                 <span style={{ fontSize:'11px', color:'#ef4444', fontFamily:'var(--font-mono)' }}>LIVE</span>
@@ -955,7 +1011,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
           <div style={{ minHeight:72, fontSize:'14.5px', lineHeight:1.75, color: voice.transcript || prepareCount != null ? 'var(--text)' : 'var(--text3)', fontStyle: voice.transcript || prepareCount != null ? 'normal' : 'italic' }}>
             {prepareCount != null
               ? `Listening starts in ${prepareCount}s...`
-              : voice.transcript || 'Mic activates automatically after Sarah finishes speaking...'}
+              : voice.transcript || (audioRecording ? 'Recording your answer. Speak naturally, then submit when ready.' : 'Mic activates automatically after Sarah finishes speaking...')}
           </div>
 
           {prepareCount != null && (
@@ -965,7 +1021,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
           )}
 
           {/* Silent countdown warning */}
-          {autoWarn && voice.isListening && (
+          {autoWarn && (voice.isListening || audioRecording) && (
             <div style={{ marginTop:'0.75rem', padding:'0.45rem 0.75rem', background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.25)', borderRadius:'8px', fontSize:'12px', color:'#f59e0b', display:'flex', alignItems:'center', gap:'0.5rem' }}>
               ⏱ Auto-submitting in {silentLimit - silentCount}s...
               {voice.transcript && <span style={{ color:'var(--text3)' }}>or click Submit now</span>}
@@ -982,7 +1038,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
         </div>
       )}
 
-      {!isCodingQuestion && voice.isListening && (
+      {!isCodingQuestion && (voice.isListening || audioRecording) && (
         <div style={{ display:'flex', justifyContent:'center' }}>
           <div style={{
             width:'100%',
@@ -1006,7 +1062,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
               </div>
               <div style={{ minWidth:0 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:'0.55rem', color:'#10b981', fontSize:'13px', fontWeight:800 }}>
-                  Listening...
+                  {recordingOnlyRef.current ? 'Recording...' : 'Listening...'}
                   <span style={{ display:'inline-flex', alignItems:'end', gap:3, height:16 }}>
                     {[0, 1, 2, 3].map(i => (
                       <span key={i} style={{ width:3, height:7 + i * 2, borderRadius:3, background:'#10b981', animation:`listen-bars 0.72s ease-in-out ${i * 0.1}s infinite alternate`, display:'inline-block' }} />
@@ -1014,7 +1070,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
                   </span>
                 </div>
                 <div style={{ marginTop:2, color:'var(--text3)', fontSize:'12px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                  Sarah is hearing your answer
+                  {recordingOnlyRef.current ? 'Speech transcript is unavailable on this browser' : 'Sarah is hearing your answer'}
                 </div>
               </div>
             </div>
@@ -1058,7 +1114,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
             </>
           ) : (
             <>
-              {micReady && voice.isListening && voice.transcript && !submitting && (
+              {micReady && (voice.isListening || audioRecording) && (voice.transcript || audioRecording) && !submitting && (
                 <Button onClick={submitAnswer} variant="primary" size="md">
                   ✓ Submit Answer
                 </Button>
