@@ -1070,7 +1070,7 @@ const doShowReport = useCallback(async ({ submitCurrent = true } = {}) => {
                   </span>
                 </div>
                 <div style={{ marginTop:2, color:'var(--text3)', fontSize:'12px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                  {recordingOnlyRef.current ? 'Speech transcript is unavailable on this browser' : 'Sarah is hearing your answer'}
+                  {recordingOnlyRef.current ? 'Sarah is hearing your answer' : 'Sarah is hearing your answer'}
                 </div>
               </div>
             </div>
